@@ -1,0 +1,216 @@
+Installing MongoDB in ubuntu 22.04
+-----------------------------------
+
+Source: https://wiki.crowncloud.net/?How_to_Install_Latest_MongoDB_on_Ubuntu_22_04
+
+
+MongoDB
+--------
+MongoDB is an open-source document database used in many modern web applications. and MongoDB is a document-oriented NoSQL database used for high volume data storage. Instead of using tables and rows as in the traditional relational databases.
+
+
+
+1.Install the dependencies
+-------------------------
+$ sudo apt update
+$ sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
+
+
+
+2.Add MongoDB GPG Key
+-------------------
+Download and add the MongoDB GPG key with the following command
+$ wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
+
+
+
+3.Create a list for MongoDB
+--------------------------
+$ echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+
+
+
+4.Update the local package database.
+----------------------------------
+$ sudo apt-get update
+
+
+
+5.Install the MongoDB with the following command.
+-----------------------------------------------
+$ sudo apt-get install -y mongodb-org
+
+If not installation is not started and given an error, run the below commands.
+------------------------------------------------------------------------------
+$ echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
+
+$ sudo apt-get update
+
+$ sudo apt-get install libssl1.1
+
+Now, Install the MongoDB with the following command
+$ sudo apt-get install -y mongodb-org
+
+
+
+6.Start the MongoDB service and enable it to start automatically after rebooting the system.
+---------------------------------------------------------------------------------------------
+$ systemctl start mongod
+$ systemctl enable mongod
+
+
+
+7.Now, check the status of the MongoDB service.
+-----------------------------------------------
+$ systemctl status mongod
+
+Output:
+--------
+root@crown:~# systemctl status mongod
+● mongod.service - MongoDB Database Server
+     Loaded: loaded (/lib/systemd/system/mongod.service; enabled; vendor preset>
+     Active: active (running) since Wed 2022-03-23 18:54:34 UTC; 51min ago
+       Docs: https://docs.mongodb.org/manual
+   Main PID: 3619 (mongod)
+     Memory: 172.3M
+        CPU: 18.403s
+     CGroup: /system.slice/mongod.service
+             └─3619 /usr/bin/mongod --config /etc/mongod.conf
+             
+ 
+             
+8.To verify whether the installation has completed successfully by running the following command.
+------------------------------------------------------------------------------------------------
+$ mongo --eval 'db.runCommand({ connectionStatus: 1 })'
+
+Output:
+--------
+root@crown:~# mongo --eval 'db.runCommand({ connectionStatus: 1 })'
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("9722b711-f1f0-43f2-aec6-f6172da9d237") }
+MongoDB server version: 5.0.6
+{
+        "authInfo" : {
+                "authenticatedUsers" : [ ],
+                "authenticatedUserRoles" : [ ]
+        },
+        "ok" : 1
+}
+
+
+
+9.Creating Administrative MongoDB User. First, access the MongoDB shell.
+--------------------------------------
+$ mongo
+
+Output:
+-------
+root@crown:~#  mongo
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("08890b80-d543-47c1-8523-57ac3c66cf73") }
+MongoDB server version: 5.0.6
+================
+Warning: the "mongo" shell has been superseded by "mongosh",
+which delivers improved usability and compatibility.The "mongo" shell has been deprecated and will be removed in
+an upcoming release.
+For installation instructions, see
+https://docs.mongodb.com/mongodb-shell/install/
+
+
+
+10.Connect to the admin database.
+----------------------------------
+$ use admin
+
+Output:
+--------
+> use admin
+switched to db admin
+> 
+
+
+
+11.Run the following command to create a new user and set the password for the user.
+-------------------------------------------------------------------------------------
+db.createUser(
+  {
+    user: "mongoAdmin",
+    pwd: "KAb3747d",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" } ]
+  }
+ )
+ 
+Output:
+--------
+Successfully added user: {
+"user" : "mongoAdmin",
+"roles" : [
+  {
+    "role" : "userAdminAnyDatabase",
+    "db" : "admin"
+  }
+ ]
+}
+> 
+
+
+
+12.Exit the mongo shell.
+-------------------------
+quit()
+
+
+
+13.To test the changes, access the mongo shell using the created administrative user.
+--------------------------------------------------------------------------------------
+mongo -u mongoAdmin -p --authenticationDatabase admin
+
+Output:
+-------
+mongo -u mongoAdmin -p --authenticationDatabase admin
+MongoDB shell version v5.0.6
+Enter password:
+
+
+
+14.Switch to the admin database.
+---------------------------------
+use admin
+
+Output:
+--------
+> use admin
+switched to db admin
+
+
+
+15.List the users and see if you can list the created user.
+------------------------------------------------------------
+show users
+
+Output:
+--------
+> show users
+{
+        "_id" : "admin.mongoAdmin",
+        "userId" : UUID("861b55a3-eaf2-4617-ac4e-34f5284f8a87"),
+        "user" : "mongoAdmin",
+        "db" : "admin",
+        "roles" : [
+                {
+                        "role" : "userAdminAnyDatabase",
+                        "db" : "admin"
+                }
+        ],
+        "mechanisms" : [
+                "SCRAM-SHA-1",
+                "SCRAM-SHA-256"
+        ]
+}
+
+This concludes the installation and setup of MongoDB on your Ubuntu 22.04 server.
+
+
+
