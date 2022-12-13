@@ -34,7 +34,7 @@ public class JpaJoinTableApplication implements CommandLineRunner{
 		Set<Book> books = new HashSet();
 
 		// Successfully inserted
-		Book b1 = new Book("Django", "Python", 550, 2);
+		Book b1 = new Book("C++", "Bjorne", 90, 2);
 		bookRepository.save(b1); 
 
 		// Can not be inserted as bookCategory 4(foriegn key constraint) does not exist.
