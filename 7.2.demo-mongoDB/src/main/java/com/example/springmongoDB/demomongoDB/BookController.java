@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
 
-@Controller
+@RestController
 public class BookController {
     
     @Autowired
