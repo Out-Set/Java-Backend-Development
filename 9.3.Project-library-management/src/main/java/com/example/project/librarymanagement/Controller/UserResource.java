@@ -29,7 +29,7 @@ public class UserResource {
     //return 201 instead of 200
     @ResponseStatus(HttpStatus.CREATED)
     User newUser(@RequestBody User newUser) throws Exception {
-// @ , ., com
+    // @ , ., com, Email Validation
         if(UserValidator.isValidUser(newUser))
         return repository.save(newUser);
         else throw new Exception();
