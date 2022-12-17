@@ -1,0 +1,66 @@
+Spring Framework Annotations
+----------------------------
+@SpringBootApplication: The @SpringBootApplication annotation is a convenience annotation that combines the @EnableAutoConfiguration, @Configuration and the @ComponentScan annotations in a Spring Boot application. The @EnableAutoConfiguration annotation enables Spring Boot to auto-configure the application context. The @Configuration is annotated at the class level to indicate that a class declares one or more @Bean methods and may be processed by the Spring container to generate bean definitions and service requests for those beans at runtime. The @ComponentScan annotation is used with the @Configuration annotation to tell Spring the packages to scan for annotated components.
+
+
+@Autowired: 
+----------
+We can use Spring @Autowired annotation for spring bean autowiring. @Autowired annotation can be applied on variables and methods for autowiring byType. We can also use @Autowired annotation on constructor for constructor based spring autowiring.
+
+
+@Bean: 
+------
+The @Bean annotation tells that a method produces a bean to be managed by the Spring container. It is a method-level annotation. During configuration (@Configuration), the method is executed and its return value is registered as a bean within a BeanFactory.
+
+
+@Controller: 
+------------
+The @Controller annotation has been part of the framework for a very long time.@Controller annotation designates that the annotated class is a controller. It is a specialization of @Controller and is autodetected through classpath scanning. 
+
+
+@RequestMapping: 
+----------------
+The @RequestMapping is used to map web requests onto specific handler classes and/or handler methods. @RequestMapping can be applied to the controller class as well as methods.
+
+
+@Service: 
+---------
+This is an alternative to @Component that specifies you intend to use the class as part of your service layer. However, it doesn’t actually implement anything differently than @Component.
+
+
+@Repository: 
+------------
+The @Repository annotation is used to indicate that the class provides the mechanism for storage, retrieval, search, update and delete operation on objects.
+
+
+@EnableWebSecurity: 
+-------------------
+@EnableWebSecurity is used for spring security java configuration. Add this annotation with @configuration on top of your security java class that extends WebSecurityConfigurerAdapter.
+
+
+@Entity: 
+--------
+The @Entity annotation specifies that the class is an entity and is mapped to a database table.
+
+
+@Table: 
+-------
+The @Table annotation specifies the name of the database table to be used for mapping.
+
+
+@Id: 
+----
+The @Id annotation specifies the primary key of an entity
+
+
+@GeneratedValue: 
+----------------
+The @GeneratedValue provides for the specification of generation strategies for the values of primary keys.
+
+
+@Column: The @Column annotation is used to specify the mapped column for a persistent property or field. If no Column annotation is specified, the default value will be applied.
+
+
+
+
+
