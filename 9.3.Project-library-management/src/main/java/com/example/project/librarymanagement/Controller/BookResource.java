@@ -42,7 +42,7 @@ public class BookResource {
 
     @GetMapping("/hi")
     public String sayHello(){
-        return "Hello Shashi";
+        return "Hello Savan";
     }
 
 

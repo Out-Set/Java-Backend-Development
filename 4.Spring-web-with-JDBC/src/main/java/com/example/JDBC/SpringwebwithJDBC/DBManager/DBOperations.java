@@ -109,12 +109,7 @@ public class DBOperations {
 
         getConnection();
 
-        PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM PERSON WHERE ID = ?");
-        preparedStatement.setInt(1, request.getId());
-        closeConnection();
-
-        return null;
-
+        
     }
 
     public static void deletePerson(){

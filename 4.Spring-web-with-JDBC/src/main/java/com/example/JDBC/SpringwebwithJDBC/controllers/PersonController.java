@@ -40,7 +40,8 @@ public class PersonController {
     // To search a record by id
     @GetMapping("/getPersonById/{id}")
     public List<Person> getPersonById()  {
-        return DBOperations.getPersonById();
+        // return DBOperations.getPersonById();
+        return null;
     }
 
 }

@@ -11,6 +11,7 @@ public class IssuedBooks {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
+	
 	@Column(name = "user_id")
 	private int user_id;
 
