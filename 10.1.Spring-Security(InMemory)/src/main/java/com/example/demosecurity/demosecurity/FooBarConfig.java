@@ -24,6 +24,7 @@ public class FooBarConfig extends WebSecurityConfigurerAdapter {
                 .password("gautam_root")
                 .roles("student_role");
     }
+
     // This is for authorization purpose
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -38,8 +39,10 @@ public class FooBarConfig extends WebSecurityConfigurerAdapter {
                 .formLogin();
     }
 
+    // Ideally it is not recommended. Because passwords are stored in encrypted form.
+    // And, it stores the passwords as plain text.
     @Bean
-    public PasswordEncoder getPasswordEncoder(){
+    public PasswordEncoder getPasswordEncoder() {
         return NoOpPasswordEncoder.getInstance();
     }
 }
