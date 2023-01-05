@@ -16,12 +16,12 @@ public class FooBarConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.inMemoryAuthentication()
-                .withUser("piyush")
-                .password("piyush_root")
+                .withUser("sawan")
+                .password("sawan_root")
                 .roles("admin_role")
                 .and()
-                .withUser("gautam")
-                .password("gautam_root")
+                .withUser("anuj")
+                .password("anuj_root")
                 .roles("student_role");
     }
 
@@ -29,6 +29,7 @@ public class FooBarConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.
+                // httpBasic(): Removes html content from postman
                 httpBasic()
                 .and()
                 .authorizeRequests()
