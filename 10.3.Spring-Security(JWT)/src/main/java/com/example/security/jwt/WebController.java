@@ -23,6 +23,7 @@ class WebController {
     @Autowired
     private MyUserDetailsService userDetailsService;
 
+    // User login only through JWT.
     @GetMapping(value = "/user" )
     public String firstPage(HttpServletRequest request) {
 //        System.out.println(request.getHeader("Authorization"));
