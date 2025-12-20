@@ -1,0 +1,43 @@
+package com.savan.encryptionAndDecryption.decryptionService;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.IvParameterSpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+public class AESCipherDecryption {
+
+    private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
+    private static final byte[] IV = "1234567890abcdef".getBytes();  // Fixed IV
+    private static final byte[] KEY = "1234567890abcdef".getBytes(); // 16-byte key
+
+    public static void main(String[] args) {
+        try {
+            String encryptedMessage = "lryn5e1Nj9CkF9Ut1odIaA=="; // Replace with actual base64-encoded ciphertext
+            String decryptedMessage = decrypt(encryptedMessage);
+            System.out.println("Decrypted message: " + decryptedMessage);
+        } catch (Exception e) {
+            System.out.println("An Error Occurred: "+e.getMessage());
+        }
+    }
+
+    public static String decrypt(String base64Ciphertext) throws Exception {
+        // Decode the base64 encoded ciphertext
+        byte[] ciphertext = Base64.getDecoder().decode(base64Ciphertext);
+
+        // Create the cipher instance for AES/CBC/PKCS5Padding
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+
+        // Initialize the cipher for decryption
+        SecretKeySpec secretKey = new SecretKeySpec(KEY, "AES");
+        IvParameterSpec ivParameterSpec = new IvParameterSpec(IV);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParameterSpec);
+
+        // Decrypt the data
+        byte[] decryptedBytes = cipher.doFinal(ciphertext);
+
+        // Convert bytes to string
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
+    }
+}

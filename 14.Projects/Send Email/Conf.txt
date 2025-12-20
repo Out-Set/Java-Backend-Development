@@ -1,0 +1,23 @@
+# Send Email Configurations
+spring.mail.host = smtp.gmail.com
+spring.mail.port = 587
+spring.mail.username = <username>
+spring.mail.password = iyugdjmbjcpezmny
+spring.mail.properties.mail.smtp.auth = true
+spring.mail.properties.mail.smtp.starttls.enable = true
+
+
+
+Method: Post
+API: http://localhost:8080/send/email
+Request-Body:
+{
+    "subject": "Testing Mail Service",
+    "message": "Dear Sir/Madam, We have initiated update of your credit report for {month, YYYY} for delayed/non payment of dues against your loan a/c {xxxx}. It may take upto xx days to update in your credit report. Any payment made after the due date will be reflected in the next month's reporting.",
+    "recipient": "recipient@gmail.com",
+    "ccRecipients": [
+        "1stcc@exampletech.com",
+        "2ndcc@gmail.com",
+        "3rdcc@gmail.com"
+    ]
+}

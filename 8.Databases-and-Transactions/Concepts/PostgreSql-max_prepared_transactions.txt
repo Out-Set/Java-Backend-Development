@@ -1,0 +1,34 @@
+With max_prepared_transactions: 
+-------------------------------
+docker run --name pgWithMPT -p 5433:5432 -e POSTGRES_PASSWORD=12345 -d postgres -c max_prepared_transactions=100
+
+Without max_prepared_transactions:
+----------------------------------
+docker run --name pgWithoutMPT -p 5434:5432 -e POSTGRES_PASSWORD=12345 -d postgres
+
+
+Set max_prepared_transactions manually:
+=======================================
+1.Query(In PgAdmin): 
+	SHOW config_file;
+	Output: /var/lib/postgresql/data/postgresql.conf
+
+2.*Stop the database-container (must)
+	$ docker stop <container-id>/<container-name>
+
+3.Copy the file from the container to the host-machine
+	$ docker cp <container-id>:/var/lib/postgresql/data/postgresql.conf /home/savan/Documents/postgresql.conf
+
+4.Edit the file on your host machine using any text editor
+	Find 'max_prepared_transactions' and set it to 100 ( which is equal to 'max_connections = 100' i.e. 100 or greater than 100 )
+
+5.Copy the modified file back to the container
+	$ docker cp /home/savan/Documents/postgresql.conf <container-id>:/var/lib/postgresql/data/postgresql.conf
+
+6.Restart the database-container
+	$ docker start <container-id>/<container-name>
+	
+7.Query(In PgAdmin): 
+	SHOW max_prepared_transactions;
+	Output: 100 or set by you
+

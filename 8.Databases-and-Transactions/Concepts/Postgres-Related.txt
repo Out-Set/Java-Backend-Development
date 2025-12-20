@@ -1,0 +1,63 @@
+
+SELECT CAST(pan_data AS INTEGER) 
+FROM public.pan_card_data where pan_data is not null
+ORDER BY id ASC ;
+ 
+select * from pg_largeobject where loid in (SELECT CAST(pan_data AS INTEGER) 
+FROM public.pan_card_data where pan_data is not null);
+ 
+select * from pg_largeobject where loid=143090;
+ 
+select * from pan_card_data where pan_data='"143090"';
+
+----------------------------------------------------------------------------------------------
+Altering lomowner of pg_largeobject:
+====================================
+SELECT lomowner
+FROM pg_largeobject_metadata
+WHERE oid = 2091370;
+
+SELECT DISTINCT l.lomowner, r.rolname
+FROM pg_largeobject_metadata l
+LEFT JOIN pg_roles r ON r.oid = l.lomowner
+ORDER BY l.lomowner;
+
+SELECT oid
+FROM pg_largeobject_metadata
+WHERE lomowner = 16397;
+
+ALTER LARGE OBJECT 16397 OWNER TO "ApiFlowDbUser";
+
+or generate script & run:
+-------------------------
+SELECT 'ALTER LARGE OBJECT ' || oid || ' OWNER TO "ApiFlowDbUser";' 
+FROM pg_largeobject_metadata
+WHERE lomowner = 16397;
+
+SELECT l.oid, l.lomowner, r.rolname
+FROM pg_largeobject_metadata l
+LEFT JOIN pg_roles r ON r.oid = l.lomowner
+WHERE l.oid = 1000000;
+
+or in psql: 
+-----------
+SELECT format('ALTER LARGE OBJECT %s OWNER TO "ApiFlowDbUser";', oid)
+FROM pg_largeobject_metadata
+WHERE lomowner = 16397
+\gexec
+
+----------------------------------------------------------------------------------------------
+
+Create postgres-db-dump:
+------------------------------
+Access the PostgreSQL container: docker exec -it postgres_container bash
+Connect to the PostgreSQL database using psql: psql -U postgres
+List the databases: \l
+Exit psql shell: \q
+ 
+pg_dump -U postgres -d <db-name> -h <host-name> -p <port-name> > <file-location-with-file>.sql
+pg_dump -U postgres -d integration -h localhost -p 5432 > E:\db_dump\integration.sql
+
+
+Create dump Without LOBs: pg_dump -U postgres -d integration -h localhost -p 5432 --no-blobs > E:\db_dump\integration.sql
+Restore dump: psql -h 192.168.1.26 -U postgres -p 5432 -d intg_1 -f E:\\db_dump\\integration.sql

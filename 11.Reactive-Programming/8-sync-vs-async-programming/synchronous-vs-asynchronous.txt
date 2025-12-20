@@ -1,0 +1,152 @@
+Runnable and Callable Interface:
+================================
+
+Runnable Interface:
+===================
+public class TestRunnable {
+    public static void main(String[] args) {
+        Thread thread = new Thread(new Task());
+        thread.start();
+        for (int i=0; i<10; i++) {
+            System.out.println("doing some task by main method.. , ran by thread - " + Thread.currentThread().getName());
+        }
+    }
+}
+
+class Task implements Runnable {
+    @Override
+    public void run() {
+        for (int i=0; i<10; i++){
+            System.out.println("doing some task by runnable.. , ran by thread - "+Thread.currentThread().getName());
+        }
+    }
+}
+o/p:
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by main method.. , ran by thread - main
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by runnable.. , ran by thread - Thread-0
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Callable Interface:
+===================
+import java.util.concurrent.*;
+public class TestCallable {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+
+        // This will be creating threads behind the scene for you.
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        Future<String> returnValueFromFuture  =executorService.submit(new CallableTask()); // non blocking
+        for (int i=0; i<10; i++) {
+            System.out.println("doing some task by main method.. , ran by thread - " + Thread.currentThread().getName());
+        }
+        
+        // program go on hold and wait till the value appears
+        System.out.println(returnValueFromFuture.get()); // blocking
+    }
+}
+
+class CallableTask implements Callable<String> {
+    @Override
+    public String call() throws Exception {
+        for (int i=0; i<10; i++){
+            System.out.println("doing some task by runnable.. , ran by thread - "+Thread.currentThread().getName());
+        }
+        return "done doing my task";
+    }
+}
+o/p:
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by main method.. , ran by thread - main
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by main method.. , ran by thread - main
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by main method.. , ran by thread - main
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by main method.. , ran by thread - main
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+done doing my task
+
+so, if:
+-------
+ExecutorService executorService = Executors.newFixedThreadPool(1);
+Future<String> returnValueFromFuture  =executorService.submit(new CallableTask()); // non blocking
+
+// program go on hold and wait till the value appears
+System.out.println(returnValueFromFuture.get()); // blocking
+
+for (int i=0; i<10; i++) {
+	System.out.println("doing some task by main method.. , ran by thread - " + Thread.currentThread().getName());
+}
+o/p: as you can see only after getting the value it proceeds further
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+doing some task by callable.. , ran by thread - pool-1-thread-1
+done doing my task
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+doing some task by main method.. , ran by thread - main
+
+So the base way to use Future:
+------------------------------
+ExecutorService executorService = Executors.newFixedThreadPool(1);
+Future<String> returnValueFromFuture  =executorService.submit(new CallableTask());
+...
+tasks...
+tasks...
+...
+for (int i=0; i<10; i++) {
+	System.out.println("doing some task by main method.. , ran by thread - " + Thread.currentThread().getName());
+}
+...
+tasks...
+tasks...
+...
+// In the last
+System.out.println(returnValueFromFuture.get());
+
+__________________________________________
+| Solution for Future : CompatibleFuture |
+------------------------------------------

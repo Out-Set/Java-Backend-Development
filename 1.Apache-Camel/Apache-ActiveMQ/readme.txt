@@ -1,0 +1,1 @@
+https://github.com/eugenp/tutorials/blob/master/messaging-modules/spring-jms

@@ -1,0 +1,202 @@
+Create Docker-Image:
+--------------------
+# Use an official OpenJDK runtime as a parent image
+FROM openjdk:17-jdk-slim
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the packaged JAR file into the container
+COPY target/springboot-profiles.war /app/app.war
+
+# Expose the port your application will run on
+EXPOSE 8080
+
+# Set an environment variable for Spring profiles (can be overridden at runtime)
+ENV SPRING_PROFILES_ACTIVE=master
+
+# Run the application with the active profiles
+ENTRYPOINT ["java", "-jar", "/app/app.war"]
+
+# The CMD allows passing dynamic profiles (will be overridden by Docker Compose if set there)
+CMD ["--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+
+
+# Note: (.)dot represents current directory
+# Create-Docker-Image: docker build -t your-image-name .
+# Example: docker build -t springboot-profiles .
+
+
+RUN Container:
+--------------
+Command: docker run --name <some-name> -e SPRING_PROFILES_ACTIVE=prod -p external:internal your-app
+Example: docker run --name sbp-with-master-slave -e SPRING_PROFILES_ACTIVE=prod -p 8080:8080 springboot-profiles
+Example: docker run --name sbp-with-master-slave -e SPRING_PROFILES_ACTIVE=prod,master -p 8080:8080 springboot-profiles
+Example: docker run --name sbp-with-master-slave -e SPRING_PROFILES_ACTIVE=prod,slave -p 8080:8080 springboot-profiles
+
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+
+Create-Containers: Using docker-compose.yml
+-------------------------------------------
+version: '3.8'
+services:
+  master-app:
+    image: your-app
+    environment:
+      - SPRING_PROFILES_ACTIVE=master,dev
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    deploy:
+      replicas: 1  # Ensuring only one replica for master
+
+  slave-app:
+    image: your-app
+    environment:
+      - SPRING_PROFILES_ACTIVE=slave,dev
+    ports:
+      - "8081:8080"
+	  - "8082:8080"
+    networks:
+      - app-network
+    deploy:
+      replicas: 2  # Running 2 replicas of the slave
+    depends_on:
+      - master-app
+
+networks:
+  app-network:
+    driver: bridge
+
+
+Example: Without-Nginx
+----------------------
+version: '3.8'
+services:
+  master-app:
+    image: springboot-profiles
+    environment:
+      - SPRING_PROFILES_ACTIVE=master,dev
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    deploy:
+      replicas: 1  # Ensuring only one replica for master
+
+  slave-app:
+    image: springboot-profiles
+    environment:
+      - SPRING_PROFILES_ACTIVE=slave,dev
+    ports:
+      - "8081:8080"
+#      - "8082:8080"
+    networks:
+      - app-network
+    deploy:
+      replicas: 1  # Running 1 replicas of the slave
+    depends_on:
+      - master-app
+
+networks:
+  app-network:
+    driver: bridge
+
+	
+
+To Up Docker-Compose: 
+---------------------
+docker compose up -d: Will start with the no of containers specifies in the docker-compose.yml file
+
+Increase the slave-containers:
+------------------------------
+Command: docker-compose up -d --scale slave-app=<number>
+Example: docker-compose up -d --scale slave-app=5
+
+To Down the docker-compose:
+---------------------------
+Command: docker-compose down
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+Example: With-Nginx
+--------------------
+nginx.conf:
+-----------
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream master {
+        server master-app:8080;
+    }
+
+    upstream slave {
+        server slave-app:8080;
+    }
+
+    server {
+        listen 8080;
+
+        # Route all requests to master-app first
+        location / {
+            proxy_pass http://master;
+            proxy_intercept_errors on;  # Intercept errors from master
+            error_page 404 = @slave;    # If 404, forward to slave
+        }
+
+        # Slave fallback
+        location @slave {
+            proxy_pass http://slave;
+        }
+    }
+}
+
+
+docker-compose.yml:
+-------------------
+services:
+  master-app:
+    image: springboot-profiles
+    environment:
+      - SPRING_PROFILES_ACTIVE=master,dev
+    networks:
+      - app-network
+
+  slave-app:
+    image: springboot-profiles
+    environment:
+      - SPRING_PROFILES_ACTIVE=slave,dev
+    networks:
+      - app-network
+    deploy:
+      replicas: 2  # Running 2 replicas of the slave
+    depends_on:
+      - master-app  # The slave-app can still depend on master-app for startup order
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:8080"  # Exposing only nginx on port 8080
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf  # Mounting the custom NGINX configuration
+    networks:
+      - app-network
+    depends_on:
+      - master-app
+      - slave-app  # Nginx depends on both master and slave being up
+
+networks:
+  app-network:
+    driver: bridge
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+
+Intg-Logs: using-S3 Outside the docker container(using a url)

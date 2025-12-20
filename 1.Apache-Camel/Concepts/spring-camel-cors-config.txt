@@ -1,0 +1,185 @@
+Global CORS Configuration:
+==========================
+
+Without Security:
+=================
+
+SpringWebMvcCorsConfig.class:
+-----------------------------
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class SpringWebMvcCorsConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("*")
+                .allowedHeaders("*");
+    }
+}
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+With Security:
+==============
+
+application.properties
+----------------------
+#cors.allowed-origins = http://localhost:8080
+cors.allowed-origins = http://localhost:8080,http://localhost:8081
+#cors.allowed-origins = *
+cors.allowed-headers = *
+cors.allowed-methods = *
+
+
+SpringCorsConfig.class:
+-----------------------
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
+@Slf4j
+@Configuration
+public class SpringCorsConfig {
+
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
+    @Value("${cors.allowed-headers}")
+    private List<String> allowedHeaders;
+
+    @Value("${cors.allowed-methods}")
+    private List<String> allowedMethods;
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedMethods(allowedMethods);
+        config.setAllowedHeaders(allowedHeaders);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+}
+
+SecurityConfig.class:
+---------------------
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
+
+@EnableWebSecurity
+@Configuration
+public class SecurityConfig {
+
+    @Autowired
+    private SpringCorsConfig springCorsConfig;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(springCorsConfig.corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+
+        return http.build();
+    }
+}
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CamelController.class:
+----------------------
+import org.apache.camel.builder.RouteBuilder;
+import org.springframework.stereotype.Component;
+
+@Component
+public class CamelController extends RouteBuilder {
+
+    @Override
+    public void configure() throws Exception {
+
+        // Get api
+        rest("/config/cors/camel").get()
+                .to("direct:corsConfigGet");
+
+        from("direct:corsConfigGet")
+                .process(exchange -> {
+                    String message = "Get api from camel !!";
+                    exchange.getMessage().setBody(message);
+                });
+
+
+        // Post api
+        rest("/config/cors/camel").post()
+                .consumes("application/json")
+                .to("direct:corsConfigPost");
+
+        from("direct:corsConfigPost")
+                .process(exchange -> {
+                    String message = "Post api from camel with request: "+exchange.getMessage().getBody(String.class);
+                    exchange.getMessage().setBody(message);
+                });
+    }
+}
+
+SpringController.class:
+-----------------------
+import org.springframework.web.bind.annotation.*;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/config/cors/spring")
+public class SpringController {
+
+    @GetMapping
+    public String get(){
+        return "Get api from spring !!";
+    }
+
+    @PostMapping
+    public String post(@RequestBody Map<String, Object> reqBody){
+        return "Post api from camel with request: "+reqBody;
+    }
+}
+
+
+
+
+SELECT EXISTS (
+    SELECT 1
+    FROM channel c
+    JOIN tenant t ON c.tenant_id = t.id
+    WHERE t.code = 'APIFLOW'
+      AND c.username = 'savan'
+      AND c.password = '$2a$10$QjGa2n3B62wGTBsvSJoNhecLOuToNxN.hHLiH3R/SVibyd0O56Po2'
+) AS exists_flag
+
+
+DO
+$func$
+BEGIN
+   EXECUTE (
+      SELECT string_agg(format('TRUNCATE TABLE %I.%I CASCADE;', schemaname, tablename), ' ')
+      FROM pg_tables
+      WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+   );
+END
+$func$;
+

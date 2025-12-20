@@ -1,0 +1,37 @@
+# UP: docker-compose up -d
+# Down: docker-compose down
+
+services:
+  master-app:
+    image: springboot-profiles
+    environment:
+      - SPRING_PROFILES_ACTIVE=master,dev
+    networks:
+      - app-network
+
+  slave-app:
+    image: springboot-profiles
+    environment:
+      - SPRING_PROFILES_ACTIVE=slave,dev
+    networks:
+      - app-network
+    deploy:
+      replicas: 2  # Running 2 replicas of the slave
+    depends_on:
+      - master-app  # The slave-app can still depend on master-app for startup order
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:8080"  # Exposing only nginx on port 8080
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf  # Mounting the custom NGINX configuration
+    networks:
+      - app-network
+    depends_on:
+      - master-app
+      - slave-app  # Nginx depends on both master and slave being up
+
+networks:
+  app-network:
+    driver: bridge

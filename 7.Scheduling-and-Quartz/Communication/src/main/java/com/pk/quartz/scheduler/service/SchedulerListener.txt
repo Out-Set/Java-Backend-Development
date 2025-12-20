@@ -1,0 +1,561 @@
+package com.pk.quartz.scheduler.service;
+
+import static com.pk.development.routes.ValidatorUtils.hasElements;
+import static com.pk.development.routes.ValidatorUtils.isNull;
+import static com.pk.development.routes.ValidatorUtils.notNull;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.quartz.JobDetail;
+import org.quartz.JobKey;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerKey;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
+
+import com.pk.quartz.scheduler.constants.SchedulerJobStateEnum;
+import com.pk.quartz.scheduler.constants.SchedulerStatusEnum;
+import com.pk.quartz.scheduler.domainobject.JOBSchedulerDetail;
+import com.pk.quartz.scheduler.domainobject.JOBSchedulerDetailVO;
+import com.pk.quartz.scheduler.serviceinterface.IQuartzJOBSchedulerService;
+import com.pk.quartz.scheduler.serviceinterface.ISchedulerListener;
+import com.pk.quartz.scheduler.util.JOBSchedulerHelper;
+import com.pk.quartz.scheduler.vo.SchedulerJobExecutionMonitorVO;
+import com.pk.quartz.scheduler.vo.SchedulerJobExecutionMonitorVO.SchedulerJobExecutionMonitorVOBuilder;
+
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class SchedulerListener implements ISchedulerListener {
+	@Inject
+	@Named("quartzJobSchedulerService")
+	private IQuartzJOBSchedulerService jobSchedulerService;
+	@Inject
+	private JOBSchedulerHelper jobSchedulerHelper;
+	@Inject
+	private SchedulerFactoryBean jobScheduler;
+	@Inject
+	@Named("schedulerExecutionStateData")
+	private SchedulerExecutionStateData schedulerExecutionStateData;
+
+	/**public void jobScheduled(Trigger trigger) {
+		try {
+			String compositeJobAndTriggerKey = jobSchedulerHelper.prepareKeyForJobExecution(trigger.getJobKey().getGroup(), trigger.getJobKey().getName(), trigger.getKey().getGroup(),trigger.getKey().getName());
+			SchedulerJobExecutionMonitorVO schedulerJobExecutionMonitorVO = schedulerExecutionStateData.getSchedulerJobExecutionMonitorVO(compositeJobAndTriggerKey);
+
+			if (isNull(schedulerJobExecutionMonitorVO)) {
+				List<JOBSchedulerDetailVO> jobSchedulerDetailVOList = jobSchedulerService
+						.getJOBSchedulerDetailByTriggerGroupAndName(trigger.getKey().getGroup(), trigger.getKey().getName());
+				if (hasElements(jobSchedulerDetailVOList)) {
+					schedulerJobExecutionMonitorVO = new SchedulerJobExecutionMonitorVOBuilder()
+						.setJobGroupName(trigger.getJobKey().getGroup())
+						.setJobName(trigger.getJobKey().getName())
+						.setTriggerGroupName(trigger.getKey().getGroup())
+						.setTriggerName(trigger.getKey().getName())
+						.setPreviousExecutionTime(trigger.getPreviousFireTime())
+						.setNextExecutionTime(trigger.getNextFireTime()).setProcessStartTime(null)
+						.setCurrentStatus(SchedulerStatusEnum.SCHEDULED.getEnumValue())
+						.setJobState(jobSchedulerDetailVOList.get(0).isActiveFlag()
+								? SchedulerJobStateEnum.ACTIVE.getEnumValue()
+								: SchedulerJobStateEnum.INACTIVE.getEnumValue())
+						/*.setTenantId(this.neutrinoExecutionContextHolder.getTenantId())
+						.setNodeId(this.clusterOrchestrationService.getThisNodeInfo().getNodeName())*/
+						.setMappedProcessExecutionStatusList(new LinkedList<>())
+						//.setModule(ProductInformationLoader.getProductCode())
+						.setModule("APIFlow")
+						.build();
+					schedulerExecutionStateData.addSchedulerJobExecutionMonitorVO(compositeJobAndTriggerKey, schedulerJobExecutionMonitorVO);
+				}
+			} else {
+				jobSchedulerHelper.updateDataForTriggerExecution(schedulerJobExecutionMonitorVO,
+						SchedulerStatusEnum.NOT_SUPPORTED
+								.equalsValue(schedulerJobExecutionMonitorVO.getCurrentStatus())
+										? SchedulerStatusEnum.SCHEDULED.getEnumValue()
+										: SchedulerStatusEnum.NULL.getEnumValue(),
+						trigger.getPreviousFireTime(), trigger.getNextFireTime(),
+						schedulerJobExecutionMonitorVO.getJobState());
+			}
+		} catch (Exception var4) {
+			log.error(var4.getMessage(), var4);
+		}
+
+	}
+
+	public void jobAdded(JobDetail jobDetail) {
+		try {
+			List<JOBSchedulerDetailVO> theJOBSchedulerDetailVOs = jobSchedulerService.getJOBSchedulerDetailVOByJOBGroupAndName(jobDetail.getKey().getGroup(),
+							jobDetail.getKey().getName());
+			if (hasElements(theJOBSchedulerDetailVOs)) {
+				Iterator var3 = theJOBSchedulerDetailVOs.iterator();
+
+				while (var3.hasNext()) {
+					JOBSchedulerDetailVO theJOBSchedulerDetailVO = (JOBSchedulerDetailVO) var3.next();
+					SchedulerJobExecutionMonitorVO schedulerJobExecutionMonitorTempVO = this.neoSchedulerCacheService
+							.get(this.jobSchedulerHelper.prepareKeyForJobExecution(
+									theJOBSchedulerDetailVO.getJobGroupName(), theJOBSchedulerDetailVO.getJobName(),
+									theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()));
+					Pair<Date, Date> quartzTriggerPreviousAndNextFireTime = jobSchedulerService.getQuartzTriggerPreviousAndNextFireTime(theJOBSchedulerDetailVO.getTriggerName(), theJOBSchedulerDetailVO.getTriggerGroupName());
+					if (isNull(schedulerJobExecutionMonitorTempVO)) {
+						this.neoSchedulerCacheService.aware(
+								this.jobSchedulerHelper.prepareKeyForJobExecution(
+										theJOBSchedulerDetailVO.getJobGroupName(), theJOBSchedulerDetailVO.getJobName(),
+										theJOBSchedulerDetailVO.getTriggerGroupName(),
+										theJOBSchedulerDetailVO.getTriggerName()),
+								(new SchedulerJobExecutionMonitorVOBuilder())
+										.setJobGroupName(theJOBSchedulerDetailVO.getJobGroupName())
+										.setJobName(theJOBSchedulerDetailVO.getJobName())
+										.setTriggerGroupName(theJOBSchedulerDetailVO.getTriggerGroupName())
+										.setTriggerName(theJOBSchedulerDetailVO.getTriggerName())
+										.setPreviousExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getLeft())
+										.setNextExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getRight())
+										.setProcessStartTime((Date) null)
+										.setCurrentStatus(SchedulerStatusEnum.SCHEDULED.getEnumValue())
+										.setJobState(theJOBSchedulerDetailVO.isActiveFlag()
+												? SchedulerJobStateEnum.ACTIVE.getEnumValue()
+												: SchedulerJobStateEnum.INACTIVE.getEnumValue())
+										/*.setTenantId(this.neutrinoExecutionContextHolder.getTenantId())
+										.setNodeId(this.clusterOrchestrationService.getThisNodeInfo().getNodeName())*/
+										.setMappedProcessExecutionStatusList(new LinkedList())
+										//.setModule(ProductInformationLoader.getProductCode())
+										.setModule("APIFlow")
+										.build());
+					} else {
+						this.neoSchedulerCacheService.aware(
+								this.jobSchedulerHelper.prepareKeyForJobExecution(
+										theJOBSchedulerDetailVO.getJobGroupName(), theJOBSchedulerDetailVO.getJobName(),
+										theJOBSchedulerDetailVO.getTriggerGroupName(),
+										theJOBSchedulerDetailVO.getTriggerName()),
+								this.jobSchedulerHelper.updateDataForTriggerExecution(
+										schedulerJobExecutionMonitorTempVO,
+										SchedulerStatusEnum.SCHEDULED.getEnumValue(),
+										(Date) quartzTriggerPreviousAndNextFireTime.getLeft(),
+										(Date) quartzTriggerPreviousAndNextFireTime.getRight(),
+										schedulerJobExecutionMonitorTempVO.getJobState()));
+					}
+				}
+			}
+		} catch (Exception var7) {
+			log.error(var7.getMessage(), var7);
+		}
+
+	}
+
+	public void schedulerError(String msg, SchedulerException cause) {
+		try {
+			log.error("ILMSSchedulerListener.schedulerError(...),{} ", msg);
+			log.error(cause.getMessage());
+		} catch (Exception var4) {
+			log.error(var4.getMessage(), var4);
+			log.error("ILMSSchedulerListener.schedulerError(...),{} ", var4.toString());
+		}
+
+	}
+
+	public void schedulerInStandbyMode() {
+		log.info("ILMSSchedulerListener.schedulerInStandbyMode() mode");
+	}
+
+	public void schedulerStarted() {
+		try {
+			log.info("ILMSSchedulerListener.schedulerStarted() called...");
+			//log.error("LMSSchedulerListener NODE NAME IN SCHEDULER : {}", this.clusterOrchestrationService.getThisNodeInfo().getNodeName());
+			shutdownSchedulerIfServicesNotEnabledOnThisNode();
+			List<JOBSchedulerDetail> jobSchedulerDetails = jobSchedulerService.getRegisteredJobs(this.requestServicingContext.getTenantId());
+			Iterator var2 = jobSchedulerDetails.iterator();
+
+			while (var2.hasNext()) {
+				JOBSchedulerDetail theJOBSchedulerDetail = (JOBSchedulerDetail) var2.next();
+				Pair<Date, Date> quartzTriggerPreviousAndNextFireTime = jobSchedulerService.getQuartzTriggerPreviousAndNextFireTime(theJOBSchedulerDetail);
+				Boolean hydrated = this.neoSchedulerCacheService.isHydrated(this.jobSchedulerHelper
+						.prepareKeyForJobExecution(theJOBSchedulerDetail.getProcessGroupId(),
+								theJOBSchedulerDetail.getJobName(), theJOBSchedulerDetail.getTriggerGroupName(),
+								theJOBSchedulerDetail.getTriggerName()));
+				if (!hydrated) {
+					this.neoSchedulerCacheService.aware(
+							jobSchedulerHelper.prepareKeyForJobExecution(
+									String.valueOf(theJOBSchedulerDetail.getNeoProcessGroupId()),
+									theJOBSchedulerDetail.getJobName(), theJOBSchedulerDetail.getTriggerGroupName(),
+									theJOBSchedulerDetail.getTriggerName()),
+							(new SchedulerJobExecutionMonitorVOBuilder())
+									.setJobGroupName(String.valueOf(theJOBSchedulerDetail.getNeoProcessGroupId()))
+									.setJobName(theJOBSchedulerDetail.getJobName())
+									.setTriggerGroupName(theJOBSchedulerDetail.getTriggerGroupName())
+									.setTriggerName(theJOBSchedulerDetail.getTriggerName())
+									.setPreviousExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getLeft())
+									.setNextExecutionTime(theJOBSchedulerDetail.isActiveFlag()
+											? quartzTriggerPreviousAndNextFireTime.getRight()
+											: null)
+									.setProcessStartTime((Date) null)
+									.setCurrentStatus(SchedulerStatusEnum.SCHEDULED.getEnumValue())
+									.setJobState(theJOBSchedulerDetail.isActiveFlag()
+											? SchedulerJobStateEnum.ACTIVE.getEnumValue()
+											: SchedulerJobStateEnum.INACTIVE.getEnumValue())
+									/*.setTenantId(this.neutrinoExecutionContextHolder.getTenantId())
+									.setNodeId(this.clusterOrchestrationService.getThisNodeInfo().getNodeName())*/
+									.setMappedProcessExecutionStatusList(new LinkedList<>())
+									.setModule(ProductInformationLoader.getProductCode()).build());
+				}
+			}
+		} catch (Exception var6) {
+			log.error(var6.getMessage(), var6);
+		}
+
+	}
+
+	public void schedulerShutdown() {
+		log.info("ILMSSchedulerListener.schedulerShutdown() called...");
+	}
+
+	public void schedulerShuttingdown() {
+		log.info("ILMSSchedulerListener.schedulerShuttingdown() called...");
+	}
+
+	public void jobUnscheduled(TriggerKey triggerKey) {
+		try {
+			List<Integer> approvalStatus = new ArrayList();
+			approvalStatus.add(5);
+			List<JOBSchedulerDetailVO> theJOBSchedulerDetailVOs = this.jobSchedulerService
+					.getJOBSchedulerDetailByTriggerGroupAndName(triggerKey.getGroup(), triggerKey.getName(),
+							approvalStatus);
+			Iterator var4 = theJOBSchedulerDetailVOs.iterator();
+
+			while (var4.hasNext()) {
+				JOBSchedulerDetailVO theJOBSchedulerDetailVO = (JOBSchedulerDetailVO) var4.next();
+				Pair<Date, Date> quartzTriggerPreviousAndNextFireTime = this.jobSchedulerService
+						.getQuartzTriggerPreviousAndNextFireTime(theJOBSchedulerDetailVO.getTriggerName(),
+								theJOBSchedulerDetailVO.getTriggerGroupName());
+				
+				SchedulerJobExecutionMonitorVO schedulerJobExecutionMonitorTempVO = this.neoSchedulerCacheService.get(
+						this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+								theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+								theJOBSchedulerDetailVO.getTriggerName()));
+				if (isNull(schedulerJobExecutionMonitorTempVO)) {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							(new SchedulerJobExecutionMonitorVOBuilder())
+									.setJobGroupName(theJOBSchedulerDetailVO.getJobGroupName())
+									.setJobName(theJOBSchedulerDetailVO.getJobName())
+									.setTriggerGroupName(theJOBSchedulerDetailVO.getTriggerGroupName())
+									.setTriggerName(theJOBSchedulerDetailVO.getTriggerName())
+									.setPreviousExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getLeft())
+									.setNextExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getRight())
+									.setProcessStartTime((Date) null)
+									.setCurrentStatus(SchedulerStatusEnum.UNSCHEDULED.getEnumValue())
+									.setJobState(theJOBSchedulerDetailVO.isActiveFlag()
+											? SchedulerJobStateEnum.ACTIVE.getEnumValue()
+											: SchedulerJobStateEnum.INACTIVE.getEnumValue())
+									/*.setTenantId(this.neutrinoExecutionContextHolder.getTenantId())*/
+									//.setNodeId(this.clusterOrchestrationService.getThisNodeInfo().getNodeName())
+									.setMappedProcessExecutionStatusList(new LinkedList<>())
+									.setModule(ProductInformationLoader.getProductCode()).build());
+				} else {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							this.jobSchedulerHelper.updateDataForTriggerExecution(schedulerJobExecutionMonitorTempVO,
+									SchedulerStatusEnum.UNSCHEDULED.getEnumValue(),
+									(Date) quartzTriggerPreviousAndNextFireTime.getLeft(),
+									(Date) quartzTriggerPreviousAndNextFireTime.getRight(),
+									schedulerJobExecutionMonitorTempVO.getJobState()));
+				}
+			}
+		} catch (Exception var8) {
+			log.error(var8.getMessage(), var8);
+		}
+
+	}
+
+	public void triggerPaused(TriggerKey triggerKey) {
+		try {
+			List<JOBSchedulerDetailVO> theJOBSchedulerDetailVOs = jobSchedulerService
+					.getJOBSchedulerDetailByTriggerGroupAndName(triggerKey.getGroup(), triggerKey.getName());
+			Iterator var3 = theJOBSchedulerDetailVOs.iterator();
+
+			while (var3.hasNext()) {
+				JOBSchedulerDetailVO theJOBSchedulerDetailVO = (JOBSchedulerDetailVO) var3.next();
+				Pair<Date, Date> quartzTriggerPreviousAndNextFireTime = this.jobSchedulerService
+						.getQuartzTriggerPreviousAndNextFireTime(triggerKey.getName(), triggerKey.getGroup());
+				SchedulerJobExecutionMonitorVO schedulerJobExecutionMonitorTempVO = this.neoSchedulerCacheService.get(
+						this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+								theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+								theJOBSchedulerDetailVO.getTriggerName()));
+				if (isNull(schedulerJobExecutionMonitorTempVO)) {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							(new SchedulerJobExecutionMonitorVOBuilder())
+									.setJobGroupName(theJOBSchedulerDetailVO.getJobGroupName())
+									.setJobName(theJOBSchedulerDetailVO.getJobName())
+									.setTriggerGroupName(theJOBSchedulerDetailVO.getTriggerGroupName())
+									.setTriggerName(theJOBSchedulerDetailVO.getTriggerName())
+									.setPreviousExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getLeft())
+									.setNextExecutionTime((Date) null).setProcessStartTime((Date) null)
+									.setCurrentStatus(SchedulerStatusEnum.PAUSED.getEnumValue())
+									.setJobState(theJOBSchedulerDetailVO.isActiveFlag()
+											? SchedulerJobStateEnum.ACTIVE.getEnumValue()
+											: SchedulerJobStateEnum.INACTIVE.getEnumValue())
+									/*.setTenantId(this.neutrinoExecutionContextHolder.getTenantId())
+									.setNodeId(this.clusterOrchestrationService.getThisNodeInfo().getNodeName())*/
+									.setMappedProcessExecutionStatusList(new LinkedList())
+									.setModule(ProductInformationLoader.getProductCode()).build());
+				} else {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							this.jobSchedulerHelper.updateDataForTriggerExecution(schedulerJobExecutionMonitorTempVO,
+									SchedulerStatusEnum.NULL.getEnumValue(),
+									(Date) quartzTriggerPreviousAndNextFireTime.getLeft(),
+									(Date) quartzTriggerPreviousAndNextFireTime.getRight(),
+									schedulerJobExecutionMonitorTempVO.getJobState()));
+				}
+			}
+		} catch (Exception var7) {
+			log.error(var7.getMessage(), var7);
+		}
+
+	}
+
+	public void triggersPaused(String triggerGroup) {
+		log.error("LMS Scheduler : Called by the Scheduler to inform that All trigger of : {} Group has been Paused. ",	triggerGroup);
+	}
+
+	public void triggerResumed(TriggerKey triggerKey) {
+		try {
+			List<JOBSchedulerDetailVO> theJOBSchedulerDetailVOs = jobSchedulerService.getJOBSchedulerDetailByTriggerGroupAndName(triggerKey.getGroup(), triggerKey.getName());
+			Iterator var3 = theJOBSchedulerDetailVOs.iterator();
+
+			while (var3.hasNext()) {
+				JOBSchedulerDetailVO theJOBSchedulerDetailVO = (JOBSchedulerDetailVO) var3.next();
+				Pair<Date, Date> quartzTriggerPreviousAndNextFireTime = this.jobSchedulerService
+						.getQuartzTriggerPreviousAndNextFireTime(theJOBSchedulerDetailVO.getTriggerName(),
+								theJOBSchedulerDetailVO.getTriggerGroupName());
+				SchedulerJobExecutionMonitorVO schedulerJobExecutionMonitorTempVO = this.neoSchedulerCacheService.get(
+						this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+								theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+								theJOBSchedulerDetailVO.getTriggerName()));
+				if (isNull(schedulerJobExecutionMonitorTempVO)) {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							(new SchedulerJobExecutionMonitorVOBuilder())
+									.setJobGroupName(theJOBSchedulerDetailVO.getJobGroupName())
+									.setJobName(theJOBSchedulerDetailVO.getJobName())
+									.setTriggerGroupName(theJOBSchedulerDetailVO.getTriggerGroupName())
+									.setTriggerName(theJOBSchedulerDetailVO.getTriggerName())
+									.setPreviousExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getLeft())
+									.setNextExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getRight())
+									.setProcessStartTime((Date) null)
+									.setCurrentStatus(SchedulerStatusEnum.SCHEDULED.getEnumValue())
+									.setJobState(theJOBSchedulerDetailVO.isActiveFlag()
+											? SchedulerJobStateEnum.ACTIVE.getEnumValue()
+											: SchedulerJobStateEnum.INACTIVE.getEnumValue())
+									/*.setTenantId(this.neutrinoExecutionContextHolder.getTenantId())
+									.setNodeId(this.clusterOrchestrationService.getThisNodeInfo().getNodeName())*/
+									.setMappedProcessExecutionStatusList(new LinkedList())
+									.setModule(ProductInformationLoader.getProductCode()).build());
+				} else {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							this.jobSchedulerHelper.updateDataForTriggerExecution(schedulerJobExecutionMonitorTempVO,
+									SchedulerStatusEnum.NULL.getEnumValue(),
+									(Date) quartzTriggerPreviousAndNextFireTime.getLeft(),
+									(Date) quartzTriggerPreviousAndNextFireTime.getRight(),
+									schedulerJobExecutionMonitorTempVO.getJobState()));
+				}
+			}
+		} catch (Exception var7) {
+			log.error(var7.getMessage(), var7);
+		}
+
+	}
+
+	public void triggersResumed(String triggerGroup) {
+		log.error("LMS Scheduler : Called by the Scheduler to inform that the Trigger Group : {}  has been un-paused. ", triggerGroup);
+	}
+
+	public void jobDeleted(JobKey jobKey) {
+		try {
+			List<Integer> approvalStatus = new ArrayList();
+			approvalStatus.add(5);
+			List<JOBSchedulerDetailVO> theJOBSchedulerDetailVOs = this.jobSchedulerService
+					.getJOBSchedulerDetailVOByJOBGroupAndName(jobKey.getGroup(), jobKey.getName(), approvalStatus);
+			if (hasElements(theJOBSchedulerDetailVOs)) {
+				Iterator var4 = theJOBSchedulerDetailVOs.iterator();
+
+				while (var4.hasNext()) {
+					JOBSchedulerDetailVO theJOBSchedulerDetailVO = (JOBSchedulerDetailVO) var4.next();
+					SchedulerJobExecutionMonitorVO schedulerJobExecutionMonitorTempVO = this.neoSchedulerCacheService
+							.get(this.jobSchedulerHelper.prepareKeyForJobExecution(
+									theJOBSchedulerDetailVO.getJobGroupName(), theJOBSchedulerDetailVO.getJobName(),
+									theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()));
+					if (notNull(schedulerJobExecutionMonitorTempVO)) {
+						this.neoSchedulerCacheService.trashify(this.jobSchedulerHelper.prepareKeyForJobExecution(
+								theJOBSchedulerDetailVO.getJobGroupName(), theJOBSchedulerDetailVO.getJobName(),
+								theJOBSchedulerDetailVO.getTriggerGroupName(),
+								theJOBSchedulerDetailVO.getTriggerName()));
+					}
+				}
+			}
+		} catch (Exception var7) {
+			log.error(var7.getMessage(), var7);
+		}
+
+	}
+
+	public void jobPaused(JobKey jobKey) {
+		try {
+			List<JOBSchedulerDetailVO> theJOBSchedulerDetailVOs = this.jobSchedulerService
+					.getJOBSchedulerDetailVOByJOBGroupAndName(jobKey.getGroup(), jobKey.getName());
+			Iterator var3 = theJOBSchedulerDetailVOs.iterator();
+
+			while (var3.hasNext()) {
+				JOBSchedulerDetailVO theJOBSchedulerDetailVO = (JOBSchedulerDetailVO) var3.next();
+				Pair<Date, Date> quartzTriggerPreviousAndNextFireTime = this.jobSchedulerService
+						.getQuartzTriggerPreviousAndNextFireTime(theJOBSchedulerDetailVO.getTriggerName(),
+								theJOBSchedulerDetailVO.getTriggerGroupName());
+				SchedulerJobExecutionMonitorVO schedulerJobExecutionMonitorTempVO = this.neoSchedulerCacheService.get(
+						this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+								theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+								theJOBSchedulerDetailVO.getTriggerName()));
+				if (isNull(schedulerJobExecutionMonitorTempVO)) {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							(new SchedulerJobExecutionMonitorVOBuilder())
+									.setJobGroupName(theJOBSchedulerDetailVO.getJobGroupName())
+									.setJobName(theJOBSchedulerDetailVO.getJobName())
+									.setTriggerGroupName(theJOBSchedulerDetailVO.getTriggerGroupName())
+									.setTriggerName(theJOBSchedulerDetailVO.getTriggerName())
+									.setPreviousExecutionTime((Date) quartzTriggerPreviousAndNextFireTime.getLeft())
+									.setNextExecutionTime((Date) null).setProcessStartTime((Date) null)
+									.setCurrentStatus(SchedulerStatusEnum.PAUSED.getEnumValue())
+									.setJobState(SchedulerJobStateEnum.INACTIVE.getEnumValue())
+									/*.setTenantId(this.neutrinoExecutionContextHolder.getTenantId())
+									.setNodeId(this.clusterOrchestrationService.getThisNodeInfo().getNodeName())*/
+									.setMappedProcessExecutionStatusList(new LinkedList())
+									.setModule(ProductInformationLoader.getProductCode()).build());
+				} else {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							this.jobSchedulerHelper.updateDataForTriggerExecution(schedulerJobExecutionMonitorTempVO,
+									SchedulerStatusEnum.NULL.getEnumValue(),
+									(Date) quartzTriggerPreviousAndNextFireTime.getLeft(),
+									(Date) quartzTriggerPreviousAndNextFireTime.getRight(),
+									SchedulerJobStateEnum.INACTIVE.getEnumValue()));
+				}
+			}
+		} catch (Exception var7) {
+			log.error(var7.getMessage(), var7);
+		}
+
+	}
+
+	public void jobsPaused(String jobGroup) {
+		log.error("LMS Scheduler : Called by the Scheduler to inform that all the jobs of : {}, Job Group has been Paused. ", jobGroup);
+	}
+
+	public void jobResumed(JobKey jobKey) {
+		try {
+			List<JOBSchedulerDetailVO> theJOBSchedulerDetailVOs = this.jobSchedulerService
+					.getJOBSchedulerDetailVOByJOBGroupAndName(jobKey.getGroup(), jobKey.getName());
+			Iterator var3 = theJOBSchedulerDetailVOs.iterator();
+
+			while (var3.hasNext()) {
+				JOBSchedulerDetailVO theJOBSchedulerDetailVO = (JOBSchedulerDetailVO) var3.next();
+				Pair<Date, Date> quartzTriggerPreviousAndNextFireTime = this.jobSchedulerService
+						.getQuartzTriggerPreviousAndNextFireTime(theJOBSchedulerDetailVO.getTriggerName(),
+								theJOBSchedulerDetailVO.getTriggerGroupName());
+				SchedulerJobExecutionMonitorVO schedulerJobExecutionMonitorTempVO = this.neoSchedulerCacheService.get(
+						this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+								theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+								theJOBSchedulerDetailVO.getTriggerName()));
+				if (isNull(schedulerJobExecutionMonitorTempVO)) {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							(new SchedulerJobExecutionMonitorVOBuilder())
+									.setJobGroupName(theJOBSchedulerDetailVO.getJobGroupName())
+									.setJobName(theJOBSchedulerDetailVO.getJobName())
+									.setTriggerGroupName(theJOBSchedulerDetailVO.getTriggerGroupName())
+									.setTriggerName(theJOBSchedulerDetailVO.getTriggerName())
+									.setPreviousExecutionTime(quartzTriggerPreviousAndNextFireTime.getLeft())
+									.setNextExecutionTime(quartzTriggerPreviousAndNextFireTime.getRight())
+									.setProcessStartTime(null)
+									.setCurrentStatus(SchedulerStatusEnum.SCHEDULED.getEnumValue())
+									.setJobState(SchedulerJobStateEnum.ACTIVE.getEnumValue())
+									/*.setTenantId(this.neutrinoExecutionContextHolder.getTenantId())
+									.setNodeId(this.clusterOrchestrationService.getThisNodeInfo().getNodeName())*/
+									.setMappedProcessExecutionStatusList(new LinkedList<>())
+									.setModule(ProductInformationLoader.getProductCode()).build());
+				} else {
+					this.neoSchedulerCacheService.aware(
+							this.jobSchedulerHelper.prepareKeyForJobExecution(theJOBSchedulerDetailVO.getJobGroupName(),
+									theJOBSchedulerDetailVO.getJobName(), theJOBSchedulerDetailVO.getTriggerGroupName(),
+									theJOBSchedulerDetailVO.getTriggerName()),
+							this.jobSchedulerHelper.updateDataForTriggerExecution(schedulerJobExecutionMonitorTempVO,
+									SchedulerStatusEnum.NULL.getEnumValue(),
+									quartzTriggerPreviousAndNextFireTime.getLeft(),
+									quartzTriggerPreviousAndNextFireTime.getRight(),
+									SchedulerJobStateEnum.ACTIVE.getEnumValue()));
+				}
+			}
+		} catch (Exception var7) {
+			log.error(var7.getMessage(), var7);
+		}
+
+	}
+
+	public void jobsResumed(String jobGroup) {
+		log.error("LMS Scheduler : Called by the Scheduler to inform that all jobs of {} has been un-paused. ", jobGroup);
+	}
+
+	public void schedulingDataCleared() {
+		log.error("LMS Scheduler : Called by the Scheduler to inform the listener that all jobs, triggers and calendars were deleted.");
+	}
+
+	public void schedulerStarting() {
+		log.error("LMS Scheduler : Called by the Scheduler to inform the listener that it is starting. ");
+	}
+
+	public void triggerFinalized(Trigger trigger) {
+		log.error("LMS Scheduler : Called by the Scheduler to inform that the trigger : {}  has reached the condition in which it will never fire again.  ", trigger);
+	}
+
+	private boolean shutdownSchedulerIfServicesNotEnabledOnThisNode() {
+		boolean state = Boolean.FALSE;
+
+		/*try {
+			if (!this.clusterOrchestrationService.getThisNodeInfo().getSchedulerEnabled()) {
+				log.error("LMS Scheduler FORCE STANDBY: SCHEDULER EXECUTION NOT ALLOWED ON THIS NODE # {} (INVALID NODE ID OR NOT A MASTER NODE) ",
+						this.clusterOrchestrationService.getThisNodeInfo().getNodeName());
+				jobScheduler.getScheduler().standby();
+				state = Boolean.TRUE;
+			}
+		} catch (Exception var3) {
+			log.error("" + var3.getMessage(), var3);
+		}*/
+
+		return state;
+	}**/
+}

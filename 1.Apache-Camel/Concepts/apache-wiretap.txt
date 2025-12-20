@@ -1,0 +1,53 @@
+wireTap in apache-camel:
+------------------------
+In Apache Camel, wireTap is an Enterprise Integration Pattern (EIP) used to send a copy of a message to a separate route asynchronously, without affecting the main message flow. 
+It's like "tapping" into the message stream to observe or log messages without modifying or delaying the primary processing.
+
+
+wireTap is often used for:
+--------------------------
+	1. Logging or auditing
+	2. Monitoring
+	3. Sending metrics
+	4. Backups or asynchronous side-effects
+	
+How It Works:
+-------------
+When Camel encounters a wireTap in a route. It creates a copy of the original message.
+Sends this copy to a secondary route or endpoint.
+The main route continues without waiting for the tap route to complete.
+
+Example:
+--------
+from("direct:start")
+    .to("log:foo")
+    .wireTap("direct:tap")
+    .to("log:result");
+
+from("direct:tap")
+    .delay(1000).setBody().constant("Tapped")
+    .to("log:tap");
+	
+	
+Explanation:
+------------
+The message from direct:start is sent to: direct:tap (in parallel, asynchronously).
+Then to log:mainRoute for normal processing.
+The wireTap does not block or change the main message.
+
+----------------------------------------------------------------------------------------------------------------------
+
+
+Wire tapping with dynamic URIs:
+-------------------------------
+Example:
+from("direct:start")
+    .wireTap("jms:queue:backup-${header.id}")
+    .to("bean:doSomething");
+	
+	
+	
+	
+
+
+

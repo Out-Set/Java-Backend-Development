@@ -1,0 +1,212 @@
+Tradition-Controller:
+=====================
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+		
+Assume this controller executes some long running job
+@RestController
+public class HelloWorldController {
+
+    @GetMapping("/hello")
+    public List<String> helloWorldHandler() throws InterruptedException {
+        List<String> returnList = new ArrayList<>();
+        List<String> stringList = List.of("hello", "world", "hiii", "everyone");
+        for (String str: stringList) {
+            System.out.println("element "+str+" processed by the thread: "+Thread.currentThread().getName());
+            returnList.add(str);
+            Thread.sleep(1000);
+        }
+        return returnList;
+    }
+}
+o/p logs:
+element hello processed by the thread: reactor-http-epoll-2
+element world processed by the thread: reactor-http-epoll-2
+element hiii processed by the thread: reactor-http-epoll-2
+element everyone processed by the thread: reactor-http-epoll-2
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Web-Flux-Controller:
+====================
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-webflux</artifactId>
+</dependency>
+
+@RestController
+public class HelloWorldController {
+
+    @GetMapping("/hello")
+    public Flux<String> helloWorldHandler() throws InterruptedException {
+        List<String> stringList = List.of("hello", "world", "hiii", "everyone");
+        Flux<String> publisher = Flux.fromIterable(stringList).delayElements(Duration.ofSeconds(2)).log();
+        return publisher;
+    }
+}
+logs:
+2025-11-22T02:32:37.569+05:30  INFO 602058 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.2       : onSubscribe(FluxConcatMapNoPrefetch.FluxConcatMapNoPrefetchSubscriber)
+2025-11-22T02:32:37.570+05:30  INFO 602058 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.2       : request(1)
+2025-11-22T02:32:39.570+05:30  INFO 602058 --- [spring-web-flux-01] [     parallel-5] reactor.Flux.ConcatMapNoPrefetch.2       : onNext(hello)
+2025-11-22T02:32:39.578+05:30  INFO 602058 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.2       : request(127)
+2025-11-22T02:32:41.577+05:30  INFO 602058 --- [spring-web-flux-01] [     parallel-6] reactor.Flux.ConcatMapNoPrefetch.2       : onNext(world)
+2025-11-22T02:32:43.583+05:30  INFO 602058 --- [spring-web-flux-01] [     parallel-7] reactor.Flux.ConcatMapNoPrefetch.2       : onNext(hiii)
+2025-11-22T02:32:45.589+05:30  INFO 602058 --- [spring-web-flux-01] [     parallel-8] reactor.Flux.ConcatMapNoPrefetch.2       : onNext(everyone)
+2025-11-22T02:32:45.595+05:30  INFO 602058 --- [spring-web-flux-01] [     parallel-8] reactor.Flux.ConcatMapNoPrefetch.2       : onComplete()
+
+
+Mono:
+-----
+@RestController
+public class HelloWorldController {
+
+    @GetMapping("/hello")
+    public Mono<String> helloWorldHandler3() throws InterruptedException {
+        Mono<String> publisher = Mono.just("Savan");
+        return publisher;
+    }
+}
+logs:
+2025-11-22T16:08:13.523+05:30  INFO 626104 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Mono.Just.1                      : | onSubscribe([Synchronous Fuseable] Operators.ScalarSubscription)
+2025-11-22T16:08:13.524+05:30  INFO 626104 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Mono.Just.1                      : | request(unbounded)
+2025-11-22T16:08:13.525+05:30  INFO 626104 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Mono.Just.1                      : | onNext(Savan)
+2025-11-22T16:08:13.526+05:30  INFO 626104 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Mono.Just.1                      : | onComplete
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Functional Route:
+=================
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.server.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@Configuration
+public class FunctionalController {
+
+    @Bean
+    RouterFunction<ServerResponse> routerFunction() {
+        RequestPredicate request = RequestPredicates.GET("/functional/hello");
+        HandlerFunction<ServerResponse> handlerFunction = new HandlerFunction<ServerResponse>() {
+            @Override
+            public Mono<ServerResponse> handle(ServerRequest request) {
+                Flux<String> dataPublisher = Flux.just("hello", "world", "hii", "everyone").log();
+                Mono<ServerResponse> serverResponse = ServerResponse
+                        .ok()
+                        .contentType(MediaType.TEXT_EVENT_STREAM)
+                        .body(dataPublisher, String.class);
+                return serverResponse;
+            }
+        };
+        RouterFunction<ServerResponse> routerFunction = RouterFunctions.route(request, handlerFunction);
+        return routerFunction;
+    }
+}
+o/p:
+http://localhost:8080/functional/hello
+data:hello
+data:world
+data:hii
+data:everyone
+
+2025-11-22T17:17:55.315+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.Array.3                     : | onSubscribe([Synchronous Fuseable] FluxArray.ArraySubscription)
+2025-11-22T17:17:55.315+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.Array.3                     : | request(1)
+2025-11-22T17:17:55.315+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.Array.3                     : | onNext(hello)
+2025-11-22T17:17:55.318+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.Array.3                     : | request(31)
+2025-11-22T17:17:55.318+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.Array.3                     : | onNext(world)
+2025-11-22T17:17:55.320+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.Array.3                     : | onNext(hii)
+2025-11-22T17:17:55.321+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.Array.3                     : | onNext(everyone)
+2025-11-22T17:17:55.322+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.Array.3                     : | onComplete()
+
+
+More Simplified way of configuring routes:
+==========================================
+RouteHandler class:
+-------------------
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+
+@Component
+public class RouteHandler {
+
+    public Mono<ServerResponse> helloHandler() {
+        Flux<String> dataPublisher = Flux.just("hello", "world", "hii", "everyone")
+                .delayElements(Duration.ofSeconds(2)).log();
+        return ServerResponse
+                .ok()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .body(dataPublisher, String.class);
+    }
+
+    public Mono<ServerResponse> pathVariableHandler(ServerRequest serverRequest) {
+        String name = serverRequest.pathVariable("yourName");
+        String response = "Your name is: "+name;
+        Mono<String> dataPublisher = Mono.just(response).log();
+        return ServerResponse
+                .ok()
+                .body(dataPublisher, String.class);
+    }
+}
+
+FunctionalController class:
+---------------------------
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.server.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@Configuration
+public class FunctionalController {
+
+    @Autowired
+    private RouteHandler routeHandler;
+
+    @Bean
+    RouterFunction<ServerResponse> routerFunction2() {
+        return RouterFunctions
+                .route(RequestPredicates.GET("/functional/hello"), request -> routeHandler.helloHandler())
+                .andRoute(RequestPredicates.GET("/functional/hello/{yourName}"), request -> routeHandler.pathVariableHandler(request));
+    }
+}
+o/p:
+1. http://localhost:8080/functional/hello: on each 2 second data will reflect
+2025-11-22T17:15:39.972+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.1       : onSubscribe(FluxConcatMapNoPrefetch.FluxConcatMapNoPrefetchSubscriber)
+2025-11-22T17:15:39.973+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.1       : request(1)
+2025-11-22T17:15:41.975+05:30  INFO 659407 --- [spring-web-flux-01] [     parallel-1] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(hello)
+2025-11-22T17:15:42.002+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.1       : request(31)
+2025-11-22T17:15:43.991+05:30  INFO 659407 --- [spring-web-flux-01] [     parallel-2] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(world)
+2025-11-22T17:15:45.993+05:30  INFO 659407 --- [spring-web-flux-01] [     parallel-3] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(hii)
+2025-11-22T17:15:47.994+05:30  INFO 659407 --- [spring-web-flux-01] [     parallel-4] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(everyone)
+2025-11-22T17:15:47.997+05:30  INFO 659407 --- [spring-web-flux-01] [     parallel-4] reactor.Flux.ConcatMapNoPrefetch.1       : onComplete()
+
+2. http://localhost:8080/functional/hello/savan: Your name is: savan
+2025-11-22T17:16:09.179+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Mono.Just.2                      : | onSubscribe([Synchronous Fuseable] Operators.ScalarSubscription)
+2025-11-22T17:16:09.179+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Mono.Just.2                      : | request(unbounded)
+2025-11-22T17:16:09.179+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Mono.Just.2                      : | onNext(Your name is: savan)
+2025-11-22T17:16:09.181+05:30  INFO 659407 --- [spring-web-flux-01] [or-http-epoll-2] reactor.Mono.Just.2                      : | onComplete()
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Note: 
+=====
+You can replace the below line
+.andRoute(RequestPredicates.GET("/functional/hello/{yourName}"), request -> routeHandler.pathVariableHandler(request));
+with below line using method reference
+.andRoute(RequestPredicates.GET("/functional/hello/{yourName}"), routeHandler::pathVariableHandler);
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+

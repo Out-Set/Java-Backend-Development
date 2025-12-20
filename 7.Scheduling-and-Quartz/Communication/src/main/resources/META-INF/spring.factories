@@ -1,0 +1,2 @@
+#org.springframework.context.ApplicationContextInitializer=com.bitsflow.integration.common.configuration.MultiConfigContextInitializer
+org.springframework.context.ApplicationListener=com.pk.development.app.config.PropertyFilePatternRegisteringListener

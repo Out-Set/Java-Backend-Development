@@ -1,0 +1,99 @@
+Boss Thread vs Worker Thread (Netty / Reactor Netty):
+=====================================================
+Netty’s threading model (which Spring WebFlux uses under the hood) is built around two types of event-loop threads:
+
+1. Boss Thread (a.k.a. "Accept Loop"):
+--------------------------------------
+Purpose: The boss thread is responsible only for
+ -> Accepting new incoming TCP connections
+ -> Registering those connections with worker threads
+
+What it does NOT do
+ -> It does not read request data
+ -> It does not write responses
+ -> It does not run user code or handlers
+ -> It does not execute request processing
+
+Analogy: Think of the boss thread as a receptionist
+ -> Accepts new people entering the building
+ -> Assigns them to workers
+ -> Goes back to the door
+ -> If you set in VM arguments: you will have only one boss thread.
+	-Dreactor.netty.ioSelectCount=1
+
+Thread naming: (Names vary depending on OS and configuration)
+Often looks like
+	reactor-http-nio-1
+	reactor-http-epoll-1
+	boss-1
+	
+2. Worker Threads (a.k.a. "I/O Event Loop" Threads):
+----------------------------------------------------
+Purpose: Worker threads handle all the actual work
+ -> Reading request bytes (HTTP headers, body)
+ -> Writing responses
+ -> Scheduling non-blocking callbacks
+ -> Executing reactive pipelines
+ -> Running WebFlux handlers
+
+Characteristics
+ -> Workers are event-loops -> they do not block
+ -> A single worker thread can handle thousands of concurrent connections
+ -> If you set in VM arguments: you will have only one worker thread.
+ 	-Dreactor.netty.ioWorkerCount=1
+
+Thread naming: (Names vary depending on OS and configuration)
+Often looks like
+	reactor-http-nio-2
+	reactor-http-epoll-2
+	or-http-nio-1
+
+
+How Boss & Worker Threads Work Together: Step-by-step flow
+----------------------------------------------------------
+1. Client connects -> handled by boss thread.
+2. Boss thread accepts the socket connection.
+3. Boss thread assigns that connection to a worker thread.
+4. Worker thread:
+    -> reads incoming bytes
+    -> triggers WebFlux handlers
+    -> writes response
+    -> continues serving many other requests concurrently
+Boss thread goes back to accepting more connections.
+
+
+Why This Matters in WebFlux:
+----------------------------
+WebFlux = Non-blocking + Event Loop Model
+ -> Worker threads should never block (sleep, JDBC, blocking HTTP, etc.).
+ -> Because a worker thread handles many connections, blocking freezes all of them.
+
+MVC (Tomcat/Servlet) = Blocking + Thread-per-request
+ -> Each request gets its own thread, so blocking affects only that request.
+ 
+
+Quick Comparison:
+___________________________________________________________________________________
+| Feature           | Boss Thread            | Worker Thread                      |
+| ----------------- | ---------------------- | ---------------------------------- |
+| Purpose           | Accept TCP connections | Handle I/O, run WebFlux pipeline   |
+| Handles requests? | No                     | Yes                                |
+| Count             | Usually 1              | Many (or 1 if manually restricted) |
+| Blocking allowed? | Irrelevant             | Should not block                   |
+| Created by        | Netty EventLoopGroup   | Netty EventLoopGroup               |
+-----------------------------------------------------------------------------------
+
+
+Short Summary:
+--------------
+Boss thread = accepts new connections
+Worker threads = handle all read/write + request processing
+WebFlux uses worker threads for your controller logic
+Restricting with -Dreactor.netty.ioWorkerCount=1 sets only worker threads.
+Restricting with -Dreactor.netty.ioSelectCount=1 sets only boss threads.
+
+
+To learn more: 
+--------------
+webflux: https://docs.spring.io/spring-framework/reference/web/webflux.html
+DispatcherHandler: https://docs.spring.io/spring-framework/reference/web/webflux/dispatcher-handler.html

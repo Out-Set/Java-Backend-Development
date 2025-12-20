@@ -1,0 +1,53 @@
+package com.example.demo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
+
+@RestController
+@RequestMapping("/api")
+public class FormController {
+    @Autowired
+    private FileUploadService fileUploadService;
+
+    List<String> fileNames = new ArrayList<>();
+    @PostMapping("/upload")
+    public String uploadFiles(@RequestBody SwaggerModel swaggerModel) throws IOException {
+
+        String OUTSIDE_UPLOAD_DIR = "C:\\Finfinity\\temp";
+
+        String resp = "";
+        Map<String, File> fileNameWithFile = new HashMap<>();
+        for(DocFiles docfile: swaggerModel.getFiles()){
+            String fileName = docfile.getFileName();
+            resp += convertBase64ToImage(OUTSIDE_UPLOAD_DIR, fileName, docfile.getDocFile());
+            fileNameWithFile.put(fileName, new File(OUTSIDE_UPLOAD_DIR, fileName));
+            fileNames.add(fileName); // for file delete purpose
+        }
+
+        int respCode = fileUploadService.upload(swaggerModel, fileNameWithFile);
+        return resp+", and Uploaded successfully with response code :: "+respCode;
+    }
+
+    public static String convertBase64ToImage(String OUTSIDE_UPLOAD_DIR, String fileName, String docFile){
+        try {
+            byte[] imageBytes = Base64.getDecoder().decode(docFile);
+            Files.write(Paths.get(OUTSIDE_UPLOAD_DIR, fileName), imageBytes);  // Append filename to the directory path
+            return "Image saved successfully to: " + OUTSIDE_UPLOAD_DIR + "/" + fileName;  // Return the complete file path
+        } catch (IOException e) {
+            System.err.println("Error while saving image: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return "Some Error Occurred!";
+    }
+
+    @GetMapping("/delete")
+    public String deleteFile() throws IOException {
+        String OUTSIDE_UPLOAD_DIR = "C:\\Finfinity\\temp";
+        return fileUploadService.delete(fileNames, OUTSIDE_UPLOAD_DIR);
+    }
+}

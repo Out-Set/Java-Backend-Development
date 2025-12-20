@@ -1,0 +1,18 @@
+STS In eclipse:
++++++++++++++++
+
+help -> eclipse market place -> search for spring tool suite
+
+Create Spring Boot Project:
++++++++++++++++++++++++++++
+new -> project -> select spring starter project
+
+-------------------------------------------------------------------
+
+
+Thymeleaf In eclipse:
++++++++++++++++++++++
+
+help -> eclipse market place -> search for thymeleaf
+
+After adding thymeleaf to eclipse, eclipse will start giving suggestions.....

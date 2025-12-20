@@ -1,0 +1,116 @@
+Which side should we keep foriegn keys:
+=======================================
+_______________________________________________________________
+| 1-1 relationship: bliendly put the foriegn key on any side |
+---------------------------------------------------------------
+Uni-directional relationship:
+=============================
+For Student: 1 --- 1 :Address, relationship
+Put the foriegn key on any one side: good solution
+In other word merge the third table (managing the primary key of both the tables) with any one table.
+Student class:
+--------------
+@OneToOne(cascade = CascadeType.Persist) 
+@JoinColumn(name = "address_id_fk")
+private Address address;
+or
+Address class:
+--------------
+@OneToOne(cascade = CascadeType.Persist) 
+@JoinColumn(name = "student_id_fk")
+private Student student;
+(cascade = CascadeType.Persist): Whenever I want to persist the source (Student), I also want to persist the target (Address) as well.
+
+
+Bi-directional relationship:
+============================
+For Student: 1 --- 1 :Address, relationship
+Student class:
+--------------
+@OneToOne(cascade = CascadeType.Persist) 
+@JoinColumn(name = "address_id_fk")
+private Address address;
+                   ^
+Address class:     |______      
+--------------           |
+@OneToOne(mappedBy = "address")
+private Student student;
+
+Note:
+ -> If (mappedBy = "student") is not given, it will create student_id foreign-key in address table.
+ -> In OneToOne FetchType is by default EAGER, It will load the data on the fly.
+      example:
+      	  Student student = studentRepo.findById(1).get();
+      	  System.out.println(student); // address is loaded here too.
+      	  System.out.println(student.getAddresses());
+-> To load the data on-demand (when asked), set fetchType = FetchType.LAZY.
+      	  
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+_______________________________________________________________
+| 1-M relationship: bliendly put the foriegn key on many side |
+---------------------------------------------------------------
+Uni-directional relationship:
+=============================
+For Student: 1 --- * :Address, relationship
+Put the foriegn key on many side: good solution
+In other word merge the third table (managing the primary key of both the tables) with many side table.
+Address class:
+--------------
+@ManyToOne
+private Student student;
+student: id
+address: 
+   id
+   student_id
+
+But if keeps the foriegn key on one side: bad solution
+Student class:
+--------------
+@OneToMany
+private List<Address> addresses;
+student: id
+address: id
+student_address
+   student_id
+   address_id   
+It created another table student_address to manage the relationship, that is not an efficient solution.
+
+
+Bi-directional relationship:
+============================
+For Student: 1 --- * :Address, relationship
+Bi-directional benifits: from Student object we can get Addreeses and vice-versa.
+Address class:
+--------------
+@ManyToOne(cascade = CascadeType.PERSIST)
+@JoinCloumn(name = "student_id_fk")
+private Student student;
+                   ^
+Student class:     |______
+--------------           |
+@OneToMany(mappedBy = "student")
+private List<Address> addresses;
+
+Note: 
+-----
+ -> If (mappedBy = "student") is not given, it will create addres_id foreign-key in student table.
+ -> In OneToMany FetchType is by default LAZY, to maintain efficiency of app.
+ -> It will load the data on-demand (when asked).
+      example:
+      	  Student student = studentRepo.findById(1).get();
+      	  System.out.println(student); // till here address is not loaded.
+      	  System.out.println(student.getAddresses()); // now the address will be loaded.
+ ->  To load the data on the fly. set fetchType = FetchType.EAGER.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+On-demand-loading:
+==================
+ -> In spring On-demand-loading is handled by creating proxy object.
+ -> Initially the proxy object is null, until asked for the data to load.
+ -> Once asked data is loaded and proxy object gets initialized and returns to us.
+ 
+
+
+
+

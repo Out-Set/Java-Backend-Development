@@ -1,0 +1,8 @@
+Resources:
+----------
+
+Quartz Documentation: https://www.quartz-scheduler.org/documentation/
+Scheduling in Spring with Quartz: https://www.baeldung.com/spring-quartz-schedule
+Quartz Tutorial: https://www.youtube.com/watch?v=6KavPTuC0pU&pp=ygUhcXVhcnR6IHNjaGVkdWxlciB3aXRoIHNwcmluZyBib290
+
+

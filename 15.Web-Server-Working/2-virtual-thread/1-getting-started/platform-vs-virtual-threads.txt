@@ -1,0 +1,383 @@
+Platform Threads:
+=================
+  -> Implemented through extending Thread-Class or implementing Runnable-Interface.
+  -> Platform threads are equal to number of cpu core available in your syatem.
+  -> There is a limit on platform thread creation based on the capability of machines.
+  
+example:
+--------
+public class PlatformThread {
+
+    public static void handleUserRequest() {
+        System.out.println("stating thread: "+Thread.currentThread());
+
+	// CPU Bound : CPU is not sitting idle.
+	int sum = 0;
+	for(int i=0; i<1000; i++)
+	    sum += i;
+	System.out.println(sum);
+
+	// I/O bound : CPU is sitting idle for some times.
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        callToAnotherService();
+        callToDataBase();
+
+        System.out.println("ending thread: "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) {
+        for(int i=1; i<=20000; i++) {
+            new Thread(() -> handleUserRequest()).start();
+        }
+    }
+}
+o/p: possibly out of memory or process/resource limits reached
+----
+..... 
+.....
+stating thread: Thread[#18324,Thread-18291,5,main]
+stating thread: Thread[#18325,Thread-18292,5,main]
+stating thread: Thread[#18325,Thread-18293,5,main]
+stating thread: Thread[#18324,Thread-18294,5,main]
+stating thread: Thread[#18325,Thread-18295,5,main]
+[2.930s][warning][os,thread] Failed to start thread "Unknown thread" - pthread_create failed (EAGAIN) for attributes: stacksize: 1024k, guardsize: 0k, detached.
+[2.931s][warning][os,thread] Failed to start the native thread for java.lang.Thread "Thread-18291"
+Exception in thread "main" java.lang.OutOfMemoryError: unable to create native thread: possibly out of memory or process/resource limits reached
+	at java.base/java.lang.Thread.start0(Native Method)
+	at java.base/java.lang.Thread.start(Thread.java:1526)
+	at PlatformThread.main(PlatformThread.java:17)
+  
+Note: There is a limit on platform thread creation based on the capability of machines.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  
+Virtual Threads:
+================
+  -> Since JAVA V-21.
+  -> It is very quick and fast.
+  -> Virtual threads shines when there ia an I/O bound operation.
+  -> Virtual threads are daemon (running in background) threads.
+  -> It is very cheap and light weight.
+  -> Thread.startVirtualThread() to create a virtual thread.
+  -> CountDownLatch: Block the main thread until all the virtual threads is done with theirs tasks.
+  
+example:
+--------
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class VirtualThread {
+
+    static AtomicInteger threadCount = new AtomicInteger();
+
+    public static void handleUserRequest() {
+        int count = threadCount.incrementAndGet();
+        System.out.println("stating thread-"+count+" : "+Thread.currentThread());
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("ending thread-"+count+" : "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) {
+        for(int i=1; i<=20000; i++) {
+            Thread.startVirtualThread(() -> handleUserRequest());
+        }
+
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("threadCount: "+threadCount);
+    }
+}
+
+o/p:
+----
+.....
+.....
+ending thread-19991 : VirtualThread[#20028]/runnable@ForkJoinPool-1-worker-3
+ending thread-19989 : VirtualThread[#20026]/runnable@ForkJoinPool-1-worker-2
+ending thread-19993 : VirtualThread[#20030]/runnable@ForkJoinPool-1-worker-5
+ending thread-19994 : VirtualThread[#20031]/runnable@ForkJoinPool-1-worker-5
+ending thread-19997 : VirtualThread[#20034]/runnable@ForkJoinPool-1-worker-5
+ending thread-19999 : VirtualThread[#20036]/runnable@ForkJoinPool-1-worker-12
+ending thread-20000 : VirtualThread[#20037]/runnable@ForkJoinPool-1-worker-12
+threadCount: 20000
+
+--------------------------------------------------------------------------------------------
+
+CountDownLatch: Block the main thread until all the virtual threads is done with theirs tasks.
+
+Example:
+--------
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class VirtualThread {
+
+    static AtomicInteger threadCount = new AtomicInteger();
+
+    public static void handleUserRequest() {
+        int count = threadCount.incrementAndGet();
+        System.out.println("stating thread-"+count+" : "+Thread.currentThread());
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("ending thread-"+count+" : "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+
+        int threadCount = 20000;
+        CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+        for(int i=1; i<=20000; i++) {
+            Thread.startVirtualThread(() -> handleUserRequest());
+            countDownLatch.countDown();
+        }
+        countDownLatch.await();
+
+        System.out.println("threadCount: "+threadCount);
+    }
+}
+o/p:
+----
+ending thread-6083 : VirtualThread[#6117]/runnable@ForkJoinPool-1-worker-6
+ending thread-6084 : VirtualThread[#6118]/runnable@ForkJoinPool-1-worker-6
+stating thread-6335 : VirtualThread[#6368]/runnable@ForkJoinPool-1-worker-6
+ending thread-6086 : VirtualThread[#6120]/runnable@ForkJoinPool-1-worker-4
+threadCount: 20000
+ending thread-6088 : VirtualThread[#6122]/runnable@ForkJoinPool-1-worker-6
+ending thread-6085 : VirtualThread[#6119]/runnable@ForkJoinPool-1-worker-6
+stating thread-6336 : VirtualThread[#6369]/runnable@ForkJoinPool-1-worker-10
+ending thread-6089 : VirtualThread[#6123]/runnable@ForkJoinPool-1-worker-4
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Comparison between plaform-thread and virtual-thread:
+=====================================================
+platfrom-thread:
+----------------
+import java.util.concurrent.CountDownLatch;
+
+public class PlatformThread {
+
+    public static void handleUserRequest() {
+        System.out.println("stating thread: "+Thread.currentThread());
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("ending thread: "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        int threadCount = 10000;
+        CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+
+        long startTime = System.currentTimeMillis();
+        for(int i=1; i<=10000; i++) {
+            new Thread(() -> {
+                handleUserRequest();
+                countDownLatch.countDown();
+            }).start();
+        }
+        long endTime = System.currentTimeMillis();
+        countDownLatch.await();
+
+        System.out.println("threadCount: "+threadCount+", created in - "+(endTime-startTime)+" millisecounds");
+    }
+}
+o/p: 
+----
+threadCount: 10000, created in - 2509 millisecounds
+
+---------------------------------------------------------------------------------------------------------------
+
+virtual-thread:
+---------------
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class VirtualThread {
+
+    static AtomicInteger threadCount = new AtomicInteger();
+
+    public static void handleUserRequest() {
+        int count = threadCount.incrementAndGet();
+        System.out.println("stating thread-"+count+" : "+Thread.currentThread());
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("ending thread-"+count+" : "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+
+        int threadCount = 10000;
+        CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+
+        long startTime = System.currentTimeMillis();
+        for(int i=1; i<=10000; i++) {
+            Thread.startVirtualThread(() -> {
+                handleUserRequest();
+                countDownLatch.countDown();
+            });
+        }
+        long endTime = System.currentTimeMillis();
+        countDownLatch.await();
+
+        System.out.println("threadCount: "+threadCount+", created in - "+(endTime-startTime)+" millisecounds");
+    }
+}
+o/p:
+----
+threadCount: 10000, created in - 84 millisecounds
+
+___________________________________________
+| Comparison: look at the time difference |
+-------------------------------------------
+Platform Thread: threadCount: 10000, created in - 2509 millisecounds
+Virtual Thread: threadCount: 10000, created in - 84 millisecounds
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Another Example with socket:
+============================
+
+platform thread:
+----------------
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.concurrent.CountDownLatch;
+
+public class PlatformThread {
+
+    public static void handleUserRequest() {
+        System.out.println("stating thread: "+Thread.currentThread());
+
+        try(var socket  = new Socket("www.google.com", 80)) {
+            System.out.println("connected to google ...");
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        /*
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        */
+
+        System.out.println("ending thread: "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        int threadCount = 1000;
+        CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+
+        long startTime = System.currentTimeMillis();
+        for(int i=1; i<=1000; i++) {
+            new Thread(() -> {
+                handleUserRequest();
+                countDownLatch.countDown();
+            }).start();
+        }
+        long endTime = System.currentTimeMillis();
+        countDownLatch.await();
+
+        System.out.println("threadCount: "+threadCount+", created in - "+(endTime-startTime)+" millisecounds");
+    }
+}
+o/p:
+----
+threadCount: 1000, created in - 300 millisecounds
+
+---------------------------------------------------------------------------------------------------------------
+
+virtual thread:
+---------------
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class VirtualThread {
+
+    static AtomicInteger threadCount = new AtomicInteger();
+
+    public static void handleUserRequest() {
+        int count = threadCount.incrementAndGet();
+        System.out.println("stating thread-"+count+" : "+Thread.currentThread());
+
+        try(var socket  = new Socket("www.google.com", 80)) {
+            System.out.println("connected to google ...");
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        /*
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        */
+
+        System.out.println("ending thread-"+count+" : "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+
+        int threadCount = 1000;
+        CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+
+        long startTime = System.currentTimeMillis();
+        for(int i=1; i<=1000; i++) {
+            Thread.startVirtualThread(() -> {
+                handleUserRequest();
+                countDownLatch.countDown();
+            });
+        }
+        long endTime = System.currentTimeMillis();
+        countDownLatch.await();
+
+        System.out.println("threadCount: "+threadCount+", created in - "+(endTime-startTime)+" millisecounds");
+    }
+}
+o/p:
+----
+threadCount: 1000, created in - 27 millisecounds
+
+___________________________________________
+| Comparison: look at the time difference |
+-------------------------------------------
+Platform Thread: threadCount: 1000, created in - 300 millisecounds
+Virtual Thread: threadCount: 1000, created in - 27 millisecounds

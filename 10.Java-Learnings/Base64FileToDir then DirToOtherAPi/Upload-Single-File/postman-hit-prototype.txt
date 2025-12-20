@@ -1,0 +1,11 @@
+Your URL: http://localhost:9090/api/upload
+Your Method: POST/GET
+
+{
+    "docType": "1",
+    "leadId": "5",
+    "custType": "6",
+    "custId": "9",
+    "docName": "pan card",
+    "docFile": "PUT HERE YOUR BASE-64 STRING"
+}

@@ -1,0 +1,81 @@
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Base64;
+
+public class AESCryptoUtil {
+
+	public static void main(String[] args) {
+        String original = "Secret message";
+        
+        // 256-bit (32-byte) key – you must generate/store this securely
+        byte[] key = "12345678901234567890123456789012".getBytes(StandardCharsets.UTF_8);
+
+        String encrypted = AESCryptoUtil.encrypt(original, key);
+        System.out.println("Encrypted: " + encrypted);
+
+        String decrypted = AESCryptoUtil.decrypt(encrypted, key);
+        System.out.println("Decrypted: " + decrypted);
+    }
+
+    // Encrypts the data and returns Base64(IV + ciphertext)
+    public static String encrypt(String data, byte[] key32Bytes) {
+        try {
+            // Generate a random 16-byte IV
+            byte[] iv = new byte[16];
+            new SecureRandom().nextBytes(iv);
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+
+            // Prepare AES key
+            SecretKeySpec secretKey = new SecretKeySpec(key32Bytes, "AES");
+
+            // Initialize cipher for encryption
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
+
+            // Encrypt data
+            byte[] encrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
+
+            // Combine IV + encrypted
+            byte[] ivAndEncrypted = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, ivAndEncrypted, 0, iv.length);
+            System.arraycopy(encrypted, 0, ivAndEncrypted, iv.length, encrypted.length);
+
+            // Return Base64-encoded string
+            return Base64.getEncoder().encodeToString(ivAndEncrypted);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Encryption failed", e);
+        }
+    }
+
+    // Decrypts Base64(IV + ciphertext) and returns the original string
+    public static String decrypt(String base64IvAndCiphertext, byte[] key32Bytes) {
+        try {
+            // Decode Base64 input
+            byte[] ivAndEncrypted = Base64.getDecoder().decode(base64IvAndCiphertext);
+
+            // Extract IV and ciphertext
+            byte[] iv = Arrays.copyOfRange(ivAndEncrypted, 0, 16);
+            byte[] encrypted = Arrays.copyOfRange(ivAndEncrypted, 16, ivAndEncrypted.length);
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+
+            // Prepare AES key
+            SecretKeySpec secretKey = new SecretKeySpec(key32Bytes, "AES");
+
+            // Initialize cipher for decryption
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
+
+            // Decrypt and return string
+            byte[] original = cipher.doFinal(encrypted);
+            return new String(original, StandardCharsets.UTF_8);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Decryption failed", e);
+        }
+    }
+}

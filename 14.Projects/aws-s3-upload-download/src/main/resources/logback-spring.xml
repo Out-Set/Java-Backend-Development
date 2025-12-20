@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Reference Spring properties -->
+    <springProperty scope="context" name="LOGS_FILE_PATH" source="logging.file.path" />
+    <springProperty scope="context" name="LOG_FILE_NAME" source="logging.file.name" />
+    <springProperty scope="context" name="LOG_FILE_ARCHIVE_PATTERN" source="logging.file.archive-pattern" />
+
+    <appender name="Console"
+              class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>
+                %black(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1}): %msg%n%throwable
+            </Pattern>
+        </layout>
+    </appender>
+
+    <appender name="RollingFile"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_FILE_PATH}/${LOG_FILE_NAME}</file>
+        <encoder
+                class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%d %p %C{1} [%t] %m%n</Pattern>
+        </encoder>
+
+        <!-- Use SizeAndTimeBasedRollingPolicy -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_FILE_PATH}/${LOG_FILE_ARCHIVE_PATTERN}</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize> <!-- Set max file size per log file -->
+            <maxHistory>30</maxHistory> <!-- Keep logs for 30 days -->
+            <totalSizeCap>2GB</totalSizeCap> <!-- Cap the total log size -->
+        </rollingPolicy>
+    </appender>
+
+    <!-- LOG everything at INFO level -->
+    <root level="info">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </root>
+
+    <!-- LOG "com.bitsflow*" at INFO level -->
+    <logger name="com.bitsflow" level="info" additivity="false">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </logger>
+
+</configuration>

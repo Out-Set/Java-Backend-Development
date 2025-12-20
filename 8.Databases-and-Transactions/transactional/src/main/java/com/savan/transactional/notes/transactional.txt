@@ -1,0 +1,50 @@
+ACID:
+-----
+A: Atomicity(Either all or none)
+C: Consistency
+I: Isolation(Multiple transactions accessing the same data)
+D: Durability
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Transaction Manager:
+--------------------
+@Transactional:
+    -> Checks for active transaction, if not it will initiate a transaction.
+    -> It acquires the connection needed for the transaction to complete.
+
+Default Working of @Transactional:
+    -> Without try-catch block.
+    -> Only for un-checked exceptions.
+
+To work with checked exceptions: @Transactional(rollbackFor = <checked-exception>.class)
+    i.e. @Transactional(rollbackFor = Exception.class)
+         @Transactional(rollbackFor = IOException.class)
+
+To skip even in un-checked exceptions: @Transactional(noRollbackFor = <un-checked-exception>.class)
+    i.e. @Transactional(noRollbackFor = RuntimeException.class)
+
+Note: Keeping the @Transactional on the dao/repo is not required if the service which calls
+      the dao/repo methods is already have a @Transactional.
+
+Propagation level: Gives us the convenience how we want to re-use the transaction on our methods.
+    -> Use/Don't use the active transaction.
+    -> Cancel/Suspend the active transaction.
+    -> Create a new transaction.
+
+Default Propagation property on @Transactional: REQUIRED
+    @Transactional(propagation = Propagation.REQUIRED)
+
+Propagation:
+------------
+REQUIRED: Support a current transaction, create one if none exists.
+SUPPORTS: Support a current transaction, execute non-transactionally if none exists.
+MANDATORY: Support a current transaction, throw exception if none exists.
+NOT_SUPPORTED: Execute non-transactionally, suspend the current transaction if one exists.
+REQUIRES_NEW: Create a new transaction, and suspend the current transaction if one exists.
+NEVER: Execute non-transactionally, throw an exception if a transaction exists.
+NESTED: Support a current transaction, but creates a savepoint.
+	->If the nested transaction fails, only the changes after the savepoint are rolled back (not the outer transaction).
+	->If the outer transaction fails, everything rolls back, including the nested one.
+
+ctrl+l: To clean the mysql terminal.

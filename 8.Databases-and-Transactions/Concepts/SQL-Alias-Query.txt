@@ -1,0 +1,34 @@
+
+select 
+product.product_id as productId, 
+product.product_name as name, 
+product.product_type as productType, 
+product.product_category as category, 
+product.product_price as basePrice, 
+
+charges.delivery_charge as deliveryCharge, 
+charges.discount as dicount, 
+charges.gst as gstCharge 
+
+from product 
+inner join charges 
+on product.product_category=charges.product_category 
+
+where product.product_id=1;
+
+
+
+
+or Simply:
+------------
+select * from product, charges
+where product.product_category=charges.product_category 
+and product.product_id=1;
+
+
+select t.product_price-(t.product_price*discount)/100 as totalDiscount
+from t as (select * from product, charges
+where product.product_category=charges.product_category 
+and product.product_id=1);
+
+

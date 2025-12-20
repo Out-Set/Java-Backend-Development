@@ -1,0 +1,170 @@
+Important links for Atomikos:
+-----------------------------
+
+1: https://www.atomikos.com/Documentation/ConfiguringJdbc#XA_and_non_45XA_transactions
+2: https://www.atomikos.com/Blog/ExtremeTransactions6dot0
+3: https://www.atomikos.com/Documentation/JtaProperties
+4: https://docs.spring.io/spring-boot/docs/1.5.14.RELEASE/reference/html/common-application-properties.html
+
+
+Imp-Code:
+---------
+AtomikosDataSourceBean ds = new AtomikosDataSourceBean(); 
+ds.setUniqueResourceName("oracle"); 
+ds.setXaDataSourceClassName("oracle.jdbc.xa.client.OracleXADataSource"); 
+Properties p = new Properties(); 
+p.setProperty ( "user" , "java" ); 
+p.setProperty ( "password" , "java" ); 
+p.setProperty ( "URL" , "jdbc:oracle:thin:@localhost-xe:1521:XE" ); 
+ds.setXaDataSourceProperties ( p ); 
+ds.setPoolSize ( 5 );
+
+
+Connection c = ds.getConnection(); 
+ 
+// ... make use of the connection, non-XA transaction 
+ 
+c.close(); 
+ 
+UserTransaction ut = ...; 
+ut.begin(); 
+ 
+Connection c = ds.getConnection(); 
+ 
+// ... make use of the connection, XA transaction 
+ 
+c.close(); 
+ 
+ut.commit();
+
+
+Required-Dependencies:
+----------------------
+	Mandatory:
+	----------
+		<dependency>
+			<groupId>com.atomikos</groupId>
+			<artifactId>transactions-jta</artifactId>
+			<version>6.0.0</version>
+			<classifier>jakarta</classifier>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.atomikos</groupId>
+			<artifactId>transactions-jdbc</artifactId>
+			<version>6.0.0</version>
+		</dependency>
+
+	Optional:
+	---------
+		<dependency>
+			<groupId>jakarta.jms</groupId>
+			<artifactId>jakarta.jms-api</artifactId>
+			<version>3.1.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>jakarta.transaction</groupId>
+			<artifactId>jakarta.transaction-api</artifactId>
+			<version>2.0.1</version>
+		</dependency>
+
+		
+
+In Database: 
+------------
+Set max_prepared_transactions a positive number rather than '0'
+	i.e. max_prepared_transactions=100
+
+Docker-Command with max_prepared_transactions:
+----------------------------------------------
+For Postgres-DB: docker run --name postgresDbTest -p 5435:5432 -e POSTGRES_PASSWORD=12345 -d postgres -c max_prepared_transactions=100
+
+
+In application.properties:
+--------------------------
+# Logging Transactions
+logging.level.com.atomikos=DEBUG
+logging.level.org.springframework.transaction=DEBUG
+
+
+##### Notes #####
+#Mysql XADataSource: com.mysql.cj.jdbc.MysqlXADataSource
+#Oracle XADataSource: oracle.jdbc.xa.client.OracleXADataSource
+#Postgre XADataSource: org.postgresql.xa.PGXADataSource
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Explicitely set max_prepared_transactions:
++++++++++++++++++++++++++++++++++++++++++++
+
+1.SHOW max_prepared_transactions;
+
+2.Stop database-container
+	$ docker stop <container_name>/<container_id> 
+
+3.Copy the file from the container to the host-machine
+	$ docker cp b03edb31e25e:/var/lib/postgresql/data/postgresql.conf C:\Users\hp\Desktop\postgresql.conf
+
+4.Edit the file on your host machine using any text editor
+	Find 'max_prepared_transactions' and set it to 100 ( which is equal to 'max_connections = 100' i.e. 100 or greater than 100 )
+
+5.Copy the modified file back to the container
+	$ docker cp C:\Users\hp\Desktop\postgresql.conf b03edb31e25e:/var/lib/postgresql/data/postgresql.conf
+
+6.Start the database-container
+	$ docker start <container_name>/<container_id> 
+	
+7.SHOW max_prepared_transactions;
+
+
+#Atomikos Properties: 
+---------------------
+Url: https://docs.spring.io/spring-boot/docs/1.5.14.RELEASE/reference/html/common-application-properties.html
+
+# ATOMIKOS (AtomikosProperties)
+spring.jta.atomikos.connectionfactory.borrow-connection-timeout=30 # Timeout, in seconds, for borrowing connections from the pool.
+spring.jta.atomikos.connectionfactory.ignore-session-transacted-flag=true # Whether or not to ignore the transacted flag when creating session.
+spring.jta.atomikos.connectionfactory.local-transaction-mode=false # Whether or not local transactions are desired.
+spring.jta.atomikos.connectionfactory.maintenance-interval=60 # The time, in seconds, between runs of the pool's maintenance thread.
+spring.jta.atomikos.connectionfactory.max-idle-time=60 # The time, in seconds, after which connections are cleaned up from the pool.
+spring.jta.atomikos.connectionfactory.max-lifetime=0 # The time, in seconds, that a connection can be pooled for before being destroyed. 0 denotes no limit.
+spring.jta.atomikos.connectionfactory.max-pool-size=1 # The maximum size of the pool.
+spring.jta.atomikos.connectionfactory.min-pool-size=1 # The minimum size of the pool.
+spring.jta.atomikos.connectionfactory.reap-timeout=0 # The reap timeout, in seconds, for borrowed connections. 0 denotes no limit.
+spring.jta.atomikos.connectionfactory.unique-resource-name=jmsConnectionFactory # The unique name used to identify the resource during recovery.
+spring.jta.atomikos.datasource.borrow-connection-timeout=30 # Timeout, in seconds, for borrowing connections from the pool.
+spring.jta.atomikos.datasource.default-isolation-level= # Default isolation level of connections provided by the pool.
+spring.jta.atomikos.datasource.login-timeout= # Timeout, in seconds, for establishing a database connection.
+spring.jta.atomikos.datasource.maintenance-interval=60 # The time, in seconds, between runs of the pool's maintenance thread.
+spring.jta.atomikos.datasource.max-idle-time=60 # The time, in seconds, after which connections are cleaned up from the pool.
+spring.jta.atomikos.datasource.max-lifetime=0 # The time, in seconds, that a connection can be pooled for before being destroyed. 0 denotes no limit.
+spring.jta.atomikos.datasource.max-pool-size=1 # The maximum size of the pool.
+spring.jta.atomikos.datasource.min-pool-size=1 # The minimum size of the pool.
+spring.jta.atomikos.datasource.reap-timeout=0 # The reap timeout, in seconds, for borrowed connections. 0 denotes no limit.
+spring.jta.atomikos.datasource.test-query= # SQL query or statement used to validate a connection before returning it.
+spring.jta.atomikos.datasource.unique-resource-name=dataSource # The unique name used to identify the resource during recovery.
+spring.jta.atomikos.properties.checkpoint-interval=500 # Interval between checkpoints.
+spring.jta.atomikos.properties.default-jta-timeout=10000 # Default timeout for JTA transactions.
+spring.jta.atomikos.properties.enable-logging=true # Enable disk logging.
+spring.jta.atomikos.properties.force-shutdown-on-vm-exit=false # Specify if a VM shutdown should trigger forced shutdown of the transaction core.
+spring.jta.atomikos.properties.log-base-dir= # Directory in which the log files should be stored.
+spring.jta.atomikos.properties.log-base-name=tmlog # Transactions log file base name.
+spring.jta.atomikos.properties.max-actives=50 # Maximum number of active transactions.
+spring.jta.atomikos.properties.max-timeout=300000 # Maximum timeout (in milliseconds) that can be allowed for transactions.
+spring.jta.atomikos.properties.serial-jta-transactions=true # Specify if sub-transactions should be joined when possible.
+spring.jta.atomikos.properties.service= # Transaction manager implementation that should be started.
+spring.jta.atomikos.properties.threaded-two-phase-commit=false # Use different (and concurrent) threads for two-phase commit on the participating resources.
+spring.jta.atomikos.properties.transaction-manager-unique-name= # Transaction manager's unique name.
+
+
+IMPORTANT:
+----------
+docker run 
+--name <GIVE-A-NAME> 
+-e spring.datasource.url=jdbc:postgresql://localhost:5432/integration 
+-e spring.datasource.username=postgres 
+-e spring.datasource.password=12345 
+-e system.load.db.properties=NO 
+-p 8081:8081 
+-d <IMAGE-NAME>

@@ -1,0 +1,40 @@
+select * from all_scheduler_jobs;
+
+desc all_scheduler_jobs;
+
+ALTER TABLE sys.all_scheduler_jobs ADD USER_NAME varchar(200);
+
+commit;
+select JOB_NAME, START_DATE, REPEAT_INTERVAL, LAST_START_DATE, NEXT_RUN_DATE, ENABLED, STATE from all_scheduler_jobs WHERE JOB_NAME = 'INSERT_CUSTOMER';
+
+
+BEGIN
+  DBMS_SCHEDULER.SET_ATTRIBUTE(
+    name => 'INSERT_CUSTOMER',
+    attribute => 'START_DATE',
+    value => to_date('2023-09-25 12:33 PM', 'YYYY-MM-DD HH:MI AM')
+  );
+END;
+/
+
+BEGIN
+  DBMS_SCHEDULER.SET_ATTRIBUTE(
+    name => 'INSERT_CUSTOMER',
+    attribute => 'repeat_interval',
+    value => to_date('14:50:00', 'HH24:MI:SS')
+  );
+END;
+/
+
+select count(*) from customers;
+
+begin
+dbms_scheduler.set_attribute (
+name               =>  'INSERT_CUSTOMER',
+attribute          =>  'repeat_interval',
+value              =>  'freq=daily; byhour=17; byminute=08');
+end;
+
+begin
+dbms_scheduler.enable ('INSERT_CUSTOMER');
+end;

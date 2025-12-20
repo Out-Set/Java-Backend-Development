@@ -1,0 +1,28 @@
+Reactive Streams:
+=================
+Reactive Streams is an initiative to provide a standard for asynchronous stream processing with non-blocking back pressure.
+
+example:
+Flux<String> nameFlux = Flux.just("hello", "world", "good", "morning").delayElements(Duration.ofMillis(2000));  
+Flux<Integer> numberFlux = Flux.just(1,2,3,4,5,6,7,8,9,10).delayElements(Duration.ofMillis(1000));
+
+numberFlux.subscribe(number -> System.out.println(number));
+
+// Reactive Streams backpressure (s -> s.request(2))
+nameFlux.subscribe(name -> System.out.println(name), null, null, s -> s.request(2)); 
+
+o/p:
+1
+hello
+2
+3
+world
+4
+5
+6
+7
+8
+9
+10
+
+

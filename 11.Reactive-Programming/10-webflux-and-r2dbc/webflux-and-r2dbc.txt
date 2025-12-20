@@ -1,0 +1,282 @@
+R2DBC Setup:
+============
+For reactive r2dbc database drivers of differents database vendors:
+-------------------------------------------------------------------
+1. https://spring.io/projects/spring-data-r2dbc
+2. Select your database vendor
+3. Copy dependency and paste in into your pom.xml file.
+	i.e.
+	<dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>r2dbc-postgresql</artifactId>
+        </dependency>
+   Note: Remove the version info in dependency, it will be handled by spring.
+
+4. Now give r2dbc url, username and password in application.properties
+   Give attention on word r2dbc in below properties
+	spring.r2dbc.url=r2dbc:postgresql://localhost:5432/spring-reactive
+	spring.r2dbc.username=postgres
+	spring.r2dbc.password =Db@12345$
+
+application.properties:
+-----------------------
+spring.r2dbc.url=r2dbc:postgresql://localhost:5432/spring-reactive
+spring.r2dbc.username=postgres
+spring.r2dbc.password =Db@12345$
+
+spring.sql.init.mode=always
+
+schema.sql:
+-----------
+-- Working schema.sql (PostgreSQL + R2DBC)
+CREATE TABLE IF NOT EXISTS STUDENT (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    age INT NOT NULL
+);
+
+data.sql:
+---------
+TRUNCATE TABLE STUDENT;
+INSERT INTO STUDENT (name, age) VALUES ('savan', 21);
+INSERT INTO STUDENT (name, age) VALUES ('sachin', 22);
+INSERT INTO STUDENT (name, age) VALUES ('syed', 23);
+INSERT INTO STUDENT (name, age) VALUES ('rohit', 24);
+INSERT INTO STUDENT (name, age) VALUES ('aman', 25);
+
+Student class:
+--------------
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "student")
+public class Student {
+
+    @Id
+    private int id;
+    private String name;
+    private int age;
+}
+
+StudentRepository class:
+------------------------
+import com.savan.webflux.r2dbc.entity.Student;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
+
+@Repository
+public interface StudentRepository extends ReactiveCrudRepository<Student, Integer> {
+
+    // Making delay of 1-seconds on each row while fetching records
+    @Query("SELECT pg_sleep(1.0), s.id, s.name, s.age FROM student s")
+    Flux<Student> findAllStudentsWithDelay();
+}
+
+StudentService class:
+---------------------
+import com.savan.webflux.r2dbc.entity.Student;
+import com.savan.webflux.r2dbc.repo.StudentRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+
+@Service
+public class StudentService {
+
+    @Autowired
+    private StudentRepository studentRepository;
+
+    public Flux<Student> getAllStudents() {
+        return studentRepository.findAll();
+    }
+
+    public Flux<Student> getAllStudentsWithDelay() {
+        return studentRepository.findAllStudentsWithDelay();
+    }
+}
+
+
+StudentController class:
+------------------------
+import com.savan.webflux.r2dbc.entity.Student;
+import com.savan.webflux.r2dbc.service.StudentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+
+import java.time.Duration;
+
+@RestController
+public class StudentController {
+
+    @Autowired
+    private StudentService studentService;
+
+    @GetMapping(value = "/students", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<Student> getAllStudents() {
+        return studentService.getAllStudents()
+                .delayElements(Duration.ofSeconds(1)).log();
+    }
+
+    @GetMapping(value = "/students/with-delay", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<Student> getAllStudentsWithDelay() {
+        System.out.println("Threads which accepts the request: "+Thread.currentThread().getName());
+        return studentService.getAllStudentsWithDelay()
+                .doOnSubscribe(s ->
+                        System.out.println("Subscribed on: " + Thread.currentThread().getName()))
+                .doOnNext(student ->
+                        System.out.println("Emitting value on: " + Thread.currentThread().getName()))
+                .doOnComplete(() ->
+                        System.out.println("Completed on: " + Thread.currentThread().getName()));
+    }
+}
+
+o/p
+1. http://localhost:8080/students: Below results will be displayed each after 1 second bcoz of delayElements(Duration.ofSeconds(1)) in cobtroller.
+data:{"id":31,"name":"savan","age":21}
+data:{"id":32,"name":"sachin","age":22}
+data:{"id":33,"name":"syed","age":23}
+data:{"id":34,"name":"rohit","age":24}
+data:{"id":35,"name":"aman","age":25}
+
+logs: You can clearly see here that request is not being blocked here, request is accepted by one thread and processed by another threads.
+2025-11-22T23:26:45.529+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [or-http-epoll-3] reactor.Flux.ConcatMapNoPrefetch.1       : onSubscribe(FluxConcatMapNoPrefetch.FluxConcatMapNoPrefetchSubscriber)
+2025-11-22T23:26:45.532+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [or-http-epoll-3] reactor.Flux.ConcatMapNoPrefetch.1       : request(1)
+2025-11-22T23:26:46.561+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [     parallel-2] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(Student(id=31, name=savan, age=21))
+2025-11-22T23:26:46.571+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [or-http-epoll-3] reactor.Flux.ConcatMapNoPrefetch.1       : request(31)
+2025-11-22T23:26:47.570+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [     parallel-3] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(Student(id=32, name=sachin, age=22))
+2025-11-22T23:26:48.576+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [     parallel-4] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(Student(id=33, name=syed, age=23))
+2025-11-22T23:26:49.581+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [     parallel-5] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(Student(id=34, name=rohit, age=24))
+2025-11-22T23:26:50.586+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [     parallel-6] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(Student(id=35, name=aman, age=25))
+2025-11-22T23:26:50.593+05:30  INFO 785055 --- [spring-web-flux-r2dbc] [     parallel-6] reactor.Flux.ConcatMapNoPrefetch.1       : onComplete()
+
+
+2. http://localhost:8080/students/with-delay: Below results will be reflected (all at once) after 6 seconds bcoz of 1 sec delay from each row fetch (sql-query in repo).
+data:{"id":31,"name":"savan","age":21}
+data:{"id":32,"name":"sachin","age":22}
+data:{"id":33,"name":"syed","age":23}
+data:{"id":34,"name":"rohit","age":24}
+data:{"id":35,"name":"aman","age":25}
+
+logs: You can clearly see here that request is not being blocked here, request is accepted by one thread and processed by another threads.
+Threads which accepts the request: reactor-http-epoll-2
+Subscribed on: reactor-http-epoll-2
+Emitting value on: reactor-tcp-epoll-10
+Emitting value on: reactor-http-epoll-2
+Emitting value on: reactor-http-epoll-2
+Emitting value on: reactor-http-epoll-2
+Emitting value on: reactor-http-epoll-2
+Completed on: reactor-http-epoll-2
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Creating routes in functional way:
+==================================
+
+StudentController class:
+------------------------
+import com.savan.webflux.r2dbc.entity.Student;
+import com.savan.webflux.r2dbc.service.StudentService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+
+@Slf4j
+@RestController
+public class StudentController {
+
+    @Autowired
+    private StudentService studentService;
+
+    public Mono<ServerResponse> findAllStudents(ServerRequest serverRequest) {
+        Flux<Student> allStudents = studentService.getAllStudents().log();
+        return ServerResponse
+                .ok()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .body(allStudents, Student.class);
+    }
+}
+
+RouterConfig class:
+-------------------
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.server.RequestPredicates;
+import org.springframework.web.reactive.function.server.RouterFunction;
+import org.springframework.web.reactive.function.server.RouterFunctions;
+import org.springframework.web.reactive.function.server.ServerResponse;
+
+@Configuration
+public class RouterConfig {
+
+    @Autowired
+    private StudentController studentController;
+
+    @Bean
+    RouterFunction<ServerResponse> studentRouterConfig(){
+        return RouterFunctions
+                .route(RequestPredicates.GET("/functional/students"), studentController::findAllStudents);
+    }
+}
+o/p:
+http://localhost:8080/functional/students
+data:{"id":41,"name":"savan","age":21}
+data:{"id":42,"name":"sachin","age":22}
+data:{"id":43,"name":"syed","age":23}
+data:{"id":44,"name":"rohit","age":24}
+data:{"id":45,"name":"aman","age":25}
+
+log:
+2025-11-23T01:06:25.756+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.UsingWhen.3                 : onSubscribe(FluxUsingWhen.UsingWhenSubscriber)
+2025-11-23T01:06:25.756+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.UsingWhen.3                 : request(1)
+2025-11-23T01:06:25.758+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-tcp-epoll-10] reactor.Flux.UsingWhen.3                 : onNext(Student(id=41, name=savan, age=21))
+2025-11-23T01:06:25.759+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.UsingWhen.3                 : request(31)
+2025-11-23T01:06:25.759+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.UsingWhen.3                 : onNext(Student(id=42, name=sachin, age=22))
+2025-11-23T01:06:25.759+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.UsingWhen.3                 : onNext(Student(id=43, name=syed, age=23))
+2025-11-23T01:06:25.759+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.UsingWhen.3                 : onNext(Student(id=44, name=rohit, age=24))
+2025-11-23T01:06:25.759+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.UsingWhen.3                 : onNext(Student(id=45, name=aman, age=25))
+2025-11-23T01:06:25.760+05:30  INFO 836616 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.UsingWhen.3                 : onComplete()
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Very Important Note Point:
+==========================
+
+Advantage of spring-web-flux over spring-web:
+---------------------------------------------
+1. Suppose if I hit the api: http://localhost:8080/functional/students 
+2. Which streams each record one after 5 seconds.
+3. It has just fetched the 2 records and I canceled the request.
+4. The same request will be canceled from server side also.
+5. But the 4th point is not true for spring-web (tomcat-server).
+
+logs: It is clear from the logs just after processing 2 records, requests also got canceled from server side too.
+2025-11-23T01:17:13.085+05:30  INFO 842162 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.1       : onSubscribe(FluxConcatMapNoPrefetch.FluxConcatMapNoPrefetchSubscriber)
+2025-11-23T01:17:13.086+05:30  INFO 842162 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.1       : request(1)
+2025-11-23T01:17:18.113+05:30  INFO 842162 --- [spring-web-flux-r2dbc] [     parallel-2] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(Student(id=51, name=savan, age=21))
+2025-11-23T01:17:18.178+05:30  INFO 842162 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.1       : request(31)
+2025-11-23T01:17:23.123+05:30  INFO 842162 --- [spring-web-flux-r2dbc] [     parallel-3] reactor.Flux.ConcatMapNoPrefetch.1       : onNext(Student(id=52, name=sachin, age=22))
+2025-11-23T01:17:25.609+05:30  INFO 842162 --- [spring-web-flux-r2dbc] [or-http-epoll-2] reactor.Flux.ConcatMapNoPrefetch.1       : cancel()
+
+
+

@@ -1,0 +1,45 @@
+import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.export.JRPdfExporter;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
+import net.sf.jasperreports.export.SimplePdfExporterConfiguration;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ReportGenerator {
+    public static void main(String[] args) {
+
+        try {
+            // Load the JRXML file
+            String jrxmlFile = "C:\\Users\\hp\\Desktop\\# Files\\s-report.jrxml";
+
+            // Compile the report
+            JasperReport jasperReport = JasperCompileManager.compileReport(jrxmlFile);
+
+            // Connect to your database
+            String dbUrl = "jdbc:postgresql://localhost:5432/postgres";
+            String dbUsername = "postgres";
+            String dbPassword = "12345";
+            Connection connection = DriverManager.getConnection(dbUrl, dbUsername, dbPassword);
+
+            // Fill the report
+            Map<String, Object> parameters = new HashMap<>();
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, connection);
+
+            // Export the report to PDF
+            JRPdfExporter exporter = new JRPdfExporter();
+            exporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+            exporter.setExporterOutput(new SimpleOutputStreamExporterOutput("C:\\Users\\hp\\Desktop\\# Files\\report.pdf"));
+            SimplePdfExporterConfiguration configuration = new SimplePdfExporterConfiguration();
+            exporter.setConfiguration(configuration);
+            exporter.exportReport();
+
+            System.out.println("Report generated!");
+        } catch (Exception e) {
+            System.out.println("An Error Occurred! :"+e.getMessage());
+        }
+    }
+}

@@ -1,0 +1,297 @@
+Streams:
+========
+see images: concurrency & parallelism.png
+
+A stream can be either parallel or sequential but not both.
+If you do mention (parallel()/sequential()), by default a stream is sequential.
+
+To check whether stream is parallel or not: stream.isParallel()
+	true: stream is parallel
+	false: stream is sequential
+
+# System.out.println(Runtime.getRuntime().availableProcessors());
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+parallel() and sequential():
+============================
+
+List<Integer> integerList = new ArrayList<>();
+integerList.addAll(Arrays.asList(1,2,3,4,5,6,7,8,9,10));
+
+Stream<Integer> integerStream = integerList.stream()
+                			   .map(no -> no*2)
+                			   .filter(no -> no<17);
+integerStream.forEach(no -> System.out.println(no+" ")); // 2 4 6 8 10 12 14 16
+System.out.println(integerStream.isParallel()); // false
+--------------------------------------------------------------------------------
+Stream<Integer> integerStream = integerList.stream()
+					   .parallel()
+                			   .map(no -> no*2)
+                			   .filter(no -> no<17);
+integerStream.forEach(no -> System.out.println(no+" ")); // 14 16 12 6 2 4 10 8
+System.out.println(integerStream.isParallel()); // true
+--------------------------------------------------------------------------------
+Stream<Integer> integerStream = integerList.stream()
+					   .parallel()
+                			   .map(no -> no*2)
+                			   .sequential()
+                			   .filter(no -> no<17);
+integerStream.forEach(no -> System.out.println(no+" ")); // 2 4 6 8 10 12 14 16
+System.out.println(integerStream.isParallel()); // false
+--------------------------------------------------------------------------------
+Stream<Integer> integerStream = integerList.stream()
+					   .parallel()
+                			   .map(no -> no*2)
+                			   .sequential()
+                			   .filter(no -> no<17)
+                			   .parallel();
+integerStream.forEach(no -> System.out.println(no+" ")); // 14 2 4 10 16 6 12 8
+System.out.println(integerStream.isParallel()); // true
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+forEachOrdered(): It mainains the order of elements in stream
+=============================================================
+List<Integer> integerList = new ArrayList<>();
+integerList.addAll(Arrays.asList(1,2,3,4,5,6,7,8,9,10));
+Stream<Integer> integerStream = integerList.stream()
+                			   .parallel()
+                			   .map(no -> no*2)
+                			   .filter(no -> no<17);
+integerStream.forEachOrdered(no -> System.out.print(no+" ")); // 2 4 6 8 10 12 14 16
+System.out.println(integerStream.isParallel()); // true
+
+Use-Cases: Sorting the data with parallel-streams:
+--------------------------------------------------
+List<Integer> integerList = new ArrayList<>();
+integerList.addAll(Arrays.asList(14,2,4,10,16,6,12,8,1));
+
+with parallel
+integerList.stream()
+	   .parallel()
+	   .forEachOrdered(no -> System.out.print(no+" ")); // 4 10 12 14 6 16 2 1 8
+	   
+or with parallelStream()
+integerList.parallelStream()
+                .sorted()
+                .forEach(no -> System.out.print(no+" ")); // 10 12 14 4 6 1 8 2 16
+
+correct way: use forEachOrdered()
+---------------------------------
+integerList.stream()
+	   .parallel()
+	   .sorted()
+	   .forEachOrdered(no -> System.out.print(no+" ")); // 1 2 4 6 8 10 12 14 16
+
+integerList.parallelStream()
+	   .sorted()
+	   .forEachOrdered(no -> System.out.print(no+" ")); // 1 2 4 6 8 10 12 14 16
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Thread safety with parallel-stream:
+===================================
+Note: Works with the data structures or classes which is thread-safe (works with multithreading well).
+
+List<Integer> integerList = new ArrayList<>();
+for(int i=1;i<=5;i++){
+	integerList.clear();
+	Stream.iterate(1, no->no<=20, no->no+1).parallel().forEach(no->integerList.add(no));
+	System.out.println(integerList);
+	System.out.println(integerList.size());
+}
+o/p: lists are inconsistent
+[13, 15, 14, 12, 11, 18, 20, 19, 17, 16, 7, 6, 8, 1, 3, 5, 4, 9, 10, 2]
+20
+[13, 15, 14, 12, 11, 16, 2, 1, 8, 18, 20, 19, 3, 5, 4, 7, 6, 17, 9, 10]
+20
+[13, 15, 14, 11, 12, 3, 18, 16, 17, 20, 7, 19, 5, 6, 4, 8, 1, 2, 9, 10]
+20
+[13, 7, 15, 6, 3, 1, 2, 12, 5, 16, 8, 17, 11, 4, 9, 10, 18, 20]
+18
+[13, 15, 14, 7, 6, 12, 8, 20, 17, 19, 18, 2, 1, 10, 3, 16, 4, 5]
+18
+
+with synchronizedList:
+----------------------
+List<Integer> syncList = Collections.synchronizedList(new ArrayList<>());
+for(int i=1;i<=5;i++){
+	syncList.clear();
+	Stream.iterate(1, no->no<=20, no->no+1).parallel().forEach(no->syncList.add(no));
+	System.out.println(syncList);
+	System.out.println(syncList.size());
+}
+o/p: lists are consistent
+[13, 15, 14, 12, 11, 3, 5, 4, 16, 8, 1, 7, 6, 9, 10, 18, 20, 19, 17, 2]
+20
+[13, 15, 14, 18, 17, 12, 7, 16, 6, 3, 11, 19, 20, 5, 2, 8, 4, 1, 9, 10]
+20
+[13, 18, 15, 20, 14, 19, 6, 3, 17, 12, 7, 16, 5, 2, 11, 1, 10, 9, 4, 8]
+20
+[7, 18, 6, 13, 11, 20, 12, 15, 3, 19, 2, 14, 17, 8, 5, 1, 4, 16, 9, 10]
+20
+[13, 15, 14, 12, 11, 3, 8, 6, 7, 17, 16, 4, 5, 20, 2, 18, 19, 1, 9, 10]
+20
+
+with vector:
+------------
+Vector<Integer> vector = new Vector<>();
+for(int i=1;i<=5;i++){
+	vector.clear();
+	Stream.iterate(1, no->no<=20, no->no+1).parallel().forEach(no->vector.add(no));
+	System.out.println(vector);
+	System.out.println(vector.size());
+}
+o/p: lists are consistent
+[13, 15, 14, 3, 5, 4, 8, 11, 6, 1, 9, 10, 18, 20, 19, 17, 16, 12, 2, 7]
+20
+[13, 15, 7, 14, 6, 9, 10, 8, 12, 3, 11, 5, 4, 18, 16, 1, 2, 17, 19, 20]
+20
+[13, 15, 14, 12, 11, 18, 7, 1, 20, 2, 6, 19, 3, 4, 8, 5, 10, 9, 16, 17]
+20
+[13, 15, 14, 11, 12, 18, 8, 7, 5, 2, 1, 3, 20, 9, 6, 4, 16, 10, 19, 17]
+20
+[7, 12, 13, 6, 11, 16, 17, 14, 15, 8, 18, 10, 20, 19, 9, 1, 3, 2, 4, 5]
+20
+
+With forEachOrdered():
+----------------------
+List<Integer> integerList = new ArrayList<>();
+for(int i=1;i<=5;i++){
+	integerList.clear();
+	Stream.iterate(1, no->no<=20, no->no+1).parallel().forEachOrdered(no->integerList.add(no));
+	System.out.println(integerList);
+	System.out.println(integerList.size());
+}
+o/p: size of lists are consistent
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+When to use parallel streams:
+=============================
+see image: sequential-processing-1.png, parallel-processing-1.png & parallel-processing-2.png
+
+Only use when you need to process large set of data, else don't.
+Bcoz it takes time in thread allocation then processing towards task.
+
+example: on small range of data (0, 10)
+---------------------------------------
+long startTime = System.currentTimeMillis();
+long sum = LongStream.rangeClosed(0, 10).sum();
+System.out.println("time taken by sequential stream: "+(System.currentTimeMillis()-startTime));
+System.out.println(sum);
+
+long startTime1 = System.currentTimeMillis();
+long sum1 = LongStream.rangeClosed(0, 10).parallel().sum();
+System.out.println("time taken by parallel stream: "+(System.currentTimeMillis()-startTime1));
+System.out.println(sum1);
+
+o/p: parallel stream is taking longer time than sequential stream
+time taken by sequential stream: 1
+55
+time taken by parallel stream: 3
+55
+
+example: on large range of data (0, 10000000)
+---------------------------------------------
+long startTime = System.currentTimeMillis();
+long sum = LongStream.rangeClosed(0, 10000000).sum();
+System.out.println("time taken by sequential stream: "+(System.currentTimeMillis()-startTime));
+System.out.println(sum);
+
+long startTime1 = System.currentTimeMillis();
+long sum1 = LongStream.rangeClosed(0, 10000000).parallel().sum();
+System.out.println("time taken by parallel stream: "+(System.currentTimeMillis()-startTime1));
+System.out.println(sum1);
+
+o/p: parallel stream is taking lesser time than sequential stream
+time taken by sequential stream: 10
+50000005000000
+time taken by parallel stream: 8
+50000005000000
+--------------------------------------------------------------------------------
+
+through reduce():
+-----------------
+see image - reduce-method.png
+
+on small range of data (0, 10000000)
+------------------------------------
+long startTime = System.currentTimeMillis();
+long sum = LongStream.rangeClosed(0, 10000000).reduce(0, (a,b)->a+b); // or reduce(0, Long::sum);
+System.out.println("time taken by sequential stream: "+(System.currentTimeMillis()-startTime));
+System.out.println(sum);
+
+long startTime1 = System.currentTimeMillis();
+long sum1 = LongStream.rangeClosed(0, 10000000).parallel().reduce(0, Long::sum);
+System.out.println("time taken by parallel stream: "+(System.currentTimeMillis()-startTime1));
+System.out.println(sum1);
+
+o/p: parallel stream is taking longer time than sequential stream
+time taken by sequential stream: 11
+50000005000000
+time taken by parallel stream: 33
+50000005000000
+
+example: on large range of data (0, 1000000000)
+-----------------------------------------------
+long startTime = System.currentTimeMillis();
+long sum = LongStream.rangeClosed(0, 1000000000).reduce(0, (a,b)->a+b); // or reduce(0, Long::sum);
+System.out.println("time taken by sequential stream: "+(System.currentTimeMillis()-startTime));
+System.out.println(sum);
+
+long startTime1 = System.currentTimeMillis();
+long sum1 = LongStream.rangeClosed(0, 1000000000).parallel().reduce(0, Long::sum);
+System.out.println("time taken by parallel stream: "+(System.currentTimeMillis()-startTime1));
+System.out.println(sum1);
+
+o/p: parallel stream is taking lesser time than sequential stream
+time taken by sequential stream: 1195
+500000000500000000
+time taken by parallel stream: 100
+500000000500000000
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+How Collect() works internally:
+===============================
+
+for (int i=1; i<=5; i++){
+	List<Integer> integerList = Stream.iterate(1, no->no+1).limit(20).parallel().collect(Collectors.toList());
+	// collect(Collectors.toList()) or collect(Collectors.toCollection(()-> new ArrayList<>())) or .collect(Collectors.toCollection(ArrayList::new))
+	System.out.println(integerList);
+	System.out.println(integerList.size());
+}
+o/p:
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+20
+
+behind the scene: 
+-----------------
+collect(ArrayList::new, ArrayList::add, (left, right)-> left.addAll(right));
+or
+collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Que: filter and takeWhile both works in the same way, but why the takeWhile is a stateful operation?
+Ans: bcoz this won't process each and every elements like filter to check if the condition matches.

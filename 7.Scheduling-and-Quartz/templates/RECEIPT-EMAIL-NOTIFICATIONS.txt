@@ -1,0 +1,119 @@
+HTML Template of RECEIPT-EMAIL-NOTIFICATIONS:
+=============================================
+
+CASH_RECEIPT_CREATE:
+--------------------
+<html>
+    <body>
+		<p>Dear ${RECEIPT_CREATOR_SUPERVISOR},</p>
+		<p>Receipt number ${RECEIPT_NUMBER} for Customer ${CUSTOMER_NAME}, associated with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} has been created on ${RECEIPT_DATE}.</p>
+		<div>Regards,</div>
+		<div>${RECEIPT_CREATOR_NAME}</div>
+		<div>${RECEIPT_CREATOR_EMPID}</div>
+    </body>
+</html>
+
+{"SUBJECT":"Test Email","EMAIL_TEMPLATE_DATA": {"NAME":"SAVAN","ADDRESS":"NOIDA","ROLE":"SOFTWARE DEVELOPER"},"CC":"saurabh.kumar@tech.com,savan.prajapati@tech.com","RECEIPT_CREATOR_SUPERVISOR":"ABC", "RECEIPT_NUMBER":12345, "CUSTOMER_NAME":"XYZ", "LAN":"PQR", "RECEIPT_AMOUNT":387487, "RECEIPT_DATE":"08/22/2024", "RECEIPT_CREATOR_NAME":"JKL", "RECEIPT_CREATOR_EMPID":"MNO"}
+
+CASH_RECEIPT_CANCEL_APP:
+------------------------
+<html>
+    <body>
+		<p>Dear ${CANCELLATION_INITIATOR},</p>
+		<p>Your cancellation of Receipt number ${RECEIPT_NUMBER} for Customer ${CUSTOMER_NAME}, associated with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} has been approved on ${APPROVAL_DATE} due to ${REMARKS}.</p>
+		<div>Regards,</div>
+		<div>${RECEIPT_CANCELLATION_APPROVAL_NAME}</div>
+		<div>${RECEIPT_CANCELLATION_APPROVAL_ID}</div>
+    </body>
+</html>
+
+
+CASH_RECEIPT_CANCEL_INIT:
+-------------------------
+<html>
+    <body>
+		<p>Dear ${RECEIPT_CANCELLATION_INITIATOR_SUPERVISOR},</p>
+		<p>Receipt number ${RECEIPT_NUMBER} for Customer ${CUSTOMER_NAME}, associated with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} has been initiated for cancelation on ${CANCEL_INITIATION_DATE} due to ${REMARKS}.</p>
+		<div>Regards,</div>
+		<div>${RECEIPT_CANCELLATION_INITIATOR_NAME}</div>
+		<div>${RECEIPT_CANCELLATION_INITIATOR_EMPID}</div>
+    </body>
+</html>
+
+
+CDE_RECEIPT_CREATE:
+-------------------
+<html>
+    <body>
+		<p>Dear ROM,</p>
+		<p>Receipt number ${RECEIPT_NUMBER} has been generated for Customer ${CUSTOMER_NAME}, linked with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} on ${RECEIPT_DATE}. Kindly review and verify at your earliest convenience.</p>
+		<div>Regards,</div>
+		<div>${RECEIPT_CREATOR_NAME}</div>
+		<div>${RECEIPT_CREATOR_EMPID}</div>
+    </body>
+</html>
+
+
+CDE_RECEIPT_VERIFY:
+-------------------
+<html>
+    <body>
+		<p>Dear All,</p>
+		<p>Receipt number ${RECEIPT_NUMBER} for Customer ${CUSTOMER_NAME}, associated with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} has been verified on ${RECEIPT_DATE}.</p>
+		<div>Regards,</div>
+		<div>${RECEIPT_VERIFY_NAME}</div>
+		<div>${RECEIPT_VERIFY_EMPID}</div>
+    </body>
+</html>
+
+
+CDE_RECEIPT_CANCEL_APP:
+-----------------------
+<html>
+    <body>
+		<p>Dear ${RECEIPT_CANCELLATION_INITIATOR},</p>
+		<p>Your cancellation of Receipt number ${RECEIPT_NUMBER} for Customer ${CUSTOMER_NAME}, associated with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} has been approved on ${APPROVAL_DATE}.</p>
+		<div>Regards,</div>
+		<div>${RECEIPT_CANCELLATION_APPROVE_NAME}</div>
+		<div>${RECEIPT_CANCELLATION_APPROVE_EMPID}</div>
+    </body>
+</html>
+
+
+CDE_RECEIPT_CANCEL_INIT:
+------------------------
+<html>
+    <body>
+		<p>Dear ${RECEIPT_CANCELLATION_INITIATOR_SUPERVISOR},</p>
+		<p>Receipt number ${RECEIPT_NUMBER} for Customer ${CUSTOMER_NAME}, associated with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} has been initiated for cancelation on ${CANCEL_INITIATION_DATE} due to ${REMARKS}.</p>
+		<div>Regards,</div>
+		<div>${RECEIPT_CANCELLATION_INITIATOR_NAME}</div>
+		<div>${RECEIPT_CANCELLATION_INITIATOR_EMPID}</div>
+    </body>
+</html>
+
+
+RZP_RECEIPT_CREATE:
+-------------------
+<html>
+    <body>
+		<p>Dear ${RECEIPT_CREATOR_SUPERVISOR},</p>
+		<p>Payment link has been sent to Customer ${CUSTOMER_NAME}, associated with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} on ${RECEIPT_DATE}.</p>
+		<P>This link will be valid till ${EXPIRY_DATE_TIME} and its receipt number is ${RECEIPT_NUMBER}.</P>
+		<div>Regards,</div>
+		<div>${RECEIPT_CREATOR_NAME}</div>
+		<div>${RECEIPT_CREATOR_EMPID}</div>
+    </body>
+</html>
+
+
+RZP_RECEIPT_VERIFY:
+-------------------
+<html>
+    <body>
+		<p>Dear ${RECEIPT_CREATOR},</p>
+		<p>Payment for receipt number ${RECEIPT_NUMBER} for Customer ${CUSTOMER_NAME}, associated with LAN Number ${LAN} of amount ${RECEIPT_AMOUNT} has been made on ${PAYMENT_DATE}.</p>
+		<div>Regards,</div>
+		<div><b>G-Collect team</b></div>
+    </body>
+</html>

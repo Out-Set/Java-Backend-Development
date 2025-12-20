@@ -1,0 +1,14 @@
+Add External Jars in Eclipse:
+-----------------------------
+
+Project -> build path -> configure build path -> library -> classpath -> add library ------------
+                                                                 		                |
+add external jars <-- give name and save <-- new <-- user libraries <-- next <-- user library <--
+ |                                                             ^
+ |                                                             |
+ --> select from dir --> apply and close --> to add more user libraries
+                                |
+                              finish
+                                |
+                                --> apply and close
+                                
