@@ -1,0 +1,159 @@
+Subscriber interface:
+=====================
+The Subscriber interface is a core part of the Reactive Streams Specification, and Project Reactor follows this standard.
+It defines how a consumer receives data from a Publisher such as Flux or Mono.
+
+Subscriber Interface (Reactive Streams):
+----------------------------------------
+public interface Subscriber<T> {
+
+    void onSubscribe(Subscription subscription);
+
+    void onNext(T item);
+
+    void onError(Throwable throwable);
+
+    void onComplete();
+}
+A Subscriber defines 4 lifecycle callbacks, and a Publisher (like Flux) will call these methods in a very specific order.
+
+1.onSubscribe(Subscription s):
+------------------------------
+First method that is always called.
+It gives you a Subscription object, which you use to request data.
+Subscription controls:
+	how many items you want
+	cancellation
+
+Example:
+public void onSubscribe(Subscription s) {
+    s.request(1);  // request one item
+}
+
+urpose:
+✔ Setup
+✔ Decide backpressure strategy
+✔ Start the flow
+✔ Or cancel immediately
+
+
+2.onNext(T item):
+-----------------
+Called every time the Publisher emits an item.
+
+Example:
+public void onNext(Integer value) {
+    System.out.println("Received: " + value);
+}
+Called after you have requested items.
+
+
+3.onError(Throwable t):
+-----------------------
+Called if something fails anywhere in the pipeline.
+It is a terminal signal—after onError, nothing else is called.
+
+Example:
+public void onError(Throwable t) {
+    System.out.println("Error: " + t.getMessage());
+}
+
+
+4.onComplete():
+---------------
+Called when the publisher has successfully finished emitting all items.
+Also a terminal signal.
+
+Example:
+public void onComplete() {
+    System.out.println("Completed");
+}
+
+----------------------------------------------------------------------------------------------
+
+Subscriber Lifecycle Diagram:
+------------------------------
+
+        +--------------+
+        |   subscribe  |
+        +------+-------+
+               |
+               v
+    onSubscribe(Subscription)
+               |
+               v
+        request(n)
+               |
+               v
+    +----------+----------+
+    |                     |
+onNext(item1)   onError(error)  <-- terminal
+onNext(item2) 
+...                        
+onNext(itemN)
+    |
+    v
+onComplete()  <-- terminal
+
+----------------------------------------------------------------------------------------------
+
+Backpressure: Subscriber controls the speed:
+---------------------------------------------
+A key reason Subscriber exists:
+Subscriber controls how fast it receives data.
+Using: subscription.request(n);
+This prevents the publisher from overwhelming the consumer.
+
+----------------------------------------------------------------------------------------------
+
+Example: Custom Subscriber:
+===========================
+Subscriber<Integer> subscriber = new Subscriber<>() {
+
+    private Subscription subscription;
+
+    public void onSubscribe(Subscription s) {
+        this.subscription = s;
+        s.request(1); // ask for the first item
+    }
+
+    public void onNext(Integer item) {
+        System.out.println("Received: " + item);
+        subscription.request(1); // ask for the next item
+    }
+
+    public void onError(Throwable t) {
+        System.out.println("Error: " + t.getMessage());
+    }
+
+    public void onComplete() {
+        System.out.println("All items processed");
+    }
+};
+Each request(1) triggers exactly one onNext.
+
+----------------------------------------------------------------------------------------------
+
+How Reactor Uses Subscriber:
+============================
+Your lambda: integerFlux.subscribe(no -> System.out.print(no + "\t"));
+is internally transformed into a LambdaSubscriber which implements Subscriber.
+
+Reactor automatically:
+ calls onSubscribe
+ requests Long.MAX_VALUE (unbounded)
+ handles onNext
+ handles errors and completion
+
+----------------------------------------------------------------------------------------------
+
+Summary:
+--------
+The Subscriber interface:
+ defines how data is received
+ gives you full control of flow (backpressure)
+ receives data through onNext
+ receives completion through onComplete
+ receives errors through onError
+ starts when onSubscribe is called
+

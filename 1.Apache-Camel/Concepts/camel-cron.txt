@@ -1,0 +1,40 @@
+package com.crud.entityManager;
+
+import org.apache.camel.CamelContext;
+import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.impl.DefaultCamelContext;
+import org.apache.camel.routepolicy.quartz.CronScheduledRoutePolicy;
+import org.quartz.CronExpression;
+import org.springframework.stereotype.Component;
+
+//@Component
+public class DynamicCronRoute extends RouteBuilder {
+    CamelContext camelContext = new DefaultCamelContext();
+    @Override
+    public void configure() throws Exception {
+
+        CronScheduledRoutePolicy startPolicy = new CronScheduledRoutePolicy();
+
+        CronExpression cronExpression = new CronExpression("0/5 * * * * ?");
+        String cronExpressionString = cronExpression.getCronExpression();
+        startPolicy.setRouteStartTime(cronExpressionString);
+
+        from("direct:start")
+                .routeId("testRoute")
+                .routePolicy(startPolicy)
+                .autoStartup(false)
+                .process(exchange -> {
+                    System.out.println("Running ...");
+                })
+                .log("Hello ... ")
+                .to("direct:message");
+
+        from("direct:message").log("${body}");
+
+//        startPolicy.start();
+        camelContext.start();
+    }
+}
+
+
+//        from("timer://foo?fixedRate=true&period=10000").to("direct:start");

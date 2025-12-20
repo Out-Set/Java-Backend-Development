@@ -1,0 +1,325 @@
+Important Points: 
+=================
+
+see image: virtual-thread-hands-on-6/7/8.png
+
+platform-threads: for a 'n' core cpu
+------------------------------------
+ -> You can create more or less than 'n' no of platform-threads but at a time only 'n' platform-threads can run in parallel.
+ -> Other platform-threads will be running concurrently through context-switching.
+ -> There is limitations on creating platform-threads, it depends on the size of ram beacuse platform-threads ~ 1-2 MB.
+
+virtual-threads:
+----------------
+ -> You can create many virtual-threads on the top of a platform-thread.
+ -> virtual-threads are light weight java objects.
+ 
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+MXBean:
+=======
+MXBean is mainly used for:
+ -> Monitoring
+ -> Performance tuning
+ -> Debugging virtual thread starvation
+
+Especially useful in:
+ -> High-concurrency servers (HTTP, DB, messaging)
+ -> Loom-based frameworks (Spring, Helidon, Micronaut)
+ 
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+setParallelism:
+---------------
+ -> Increasing the target parallelism allows the scheduler to use more platform threads to carry virtual threads if required. 
+ -> Decreasing the target parallelism reduces the number of threads that the scheduler may use to carry virtual threads.
+ 
+ -> The JDK's virtual thread scheduler is a ForkJoinPool. 
+ -> *Target parallelism defaults to the number of available processors. 
+ -> The minimum target parallelism is 1, the maximum target parallelism is 32767.
+
+example:
+    VirtualThreadSchedulerMXBean mxBean = ManagementFactory.getPlatformMXBean(VirtualThreadSchedulerMXBean.class);
+    mxBean.setParallelism(1);
+    System.out.println(mxBean); // [parallelism=12, size=0, mounted=0, queued=0]
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+[parallelism=12, size=0, mounted=0, queued=0]:
+==============================================
+
+parallelism: 
+------------
+ -> Maximum number of carrier threads the virtual thread scheduler can use at the same time.
+ -> Carrier threads are platform (OS) threads that run virtual threads.
+ -> By default, this value is roughly number of available CPU cores.
+ 
+size:
+-----
+ -> Total number of virtual threads known to the scheduler
+ -> This includes:
+	Running virtual threads
+	Parked (blocked) virtual threads
+	Queued virtual threads
+
+mounted:
+--------
+ -> Number of virtual threads currently mounted on carrier threads
+ -> “Mounted” means: A virtual thread is actively executing on a platform thread.
+ 
+queued:
+-------
+ -> Number of virtual threads waiting to be mounted
+ -> These are virtual threads that:
+ 	Are ready to run
+ 	But are waiting for an available carrier thread
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Setting the virtualThreadScheduler parallelism and maxPoolSize through vm-arguments:
+====================================================================================
+
+-Djdk.virtualThreadScheduler.parallelism=2 -Djdk.virtualThreadScheduler.maxPoolSize=2
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Example Code to analyse: [parallelism, size, mounted, queued]:
+==============================================================
+
+You can see the logs and analyze that:
+ -> VirtualThread are started by some worker(platform-thread)
+ -> And ended by another worker(platform-thread).
+
+1. Normal flow:
+---------------
+package com.savan.virtualthread;
+
+import jdk.management.VirtualThreadSchedulerMXBean;
+import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+
+public class VirtualThread {
+
+    public static void task() {
+        System.out.println("start task: "+Thread.currentThread());
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("end task: "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+
+        int noOfThreads = 10;
+
+        VirtualThreadSchedulerMXBean mxBean = ManagementFactory.getPlatformMXBean(VirtualThreadSchedulerMXBean.class);
+        System.out.println(mxBean);
+
+        ArrayList<Thread> virtualThreads = new ArrayList<>();
+        for (int i=0; i<noOfThreads; i++) {
+            Thread virtualThread = Thread.ofVirtual().unstarted(VirtualThread::task);
+            virtualThreads.add(virtualThread);
+        }
+        for (Thread virtualThread: virtualThreads) {
+            System.out.println(mxBean);
+            virtualThread.start();
+        }
+        for (Thread virtualThread: virtualThreads) {
+            virtualThread.join();
+        }
+
+        System.out.println(mxBean);
+    }
+}
+o/p:
+[parallelism=12, size=0, mounted=0, queued=0]
+[parallelism=12, size=0, mounted=0, queued=0]
+[parallelism=12, size=1, mounted=1, queued=1]
+[parallelism=12, size=3, mounted=3, queued=1]
+[parallelism=12, size=5, mounted=5, queued=0]
+[parallelism=12, size=5, mounted=5, queued=0]
+[parallelism=12, size=6, mounted=6, queued=0]
+[parallelism=12, size=7, mounted=7, queued=0]
+[parallelism=12, size=8, mounted=7, queued=0]
+start task: VirtualThread[#29]/runnable@ForkJoinPool-1-worker-3
+start task: VirtualThread[#31]/runnable@ForkJoinPool-1-worker-5
+start task: VirtualThread[#33]/runnable@ForkJoinPool-1-worker-7
+start task: VirtualThread[#30]/runnable@ForkJoinPool-1-worker-4
+start task: VirtualThread[#27]/runnable@ForkJoinPool-1-worker-1
+start task: VirtualThread[#32]/runnable@ForkJoinPool-1-worker-6
+[parallelism=12, size=8, mounted=8, queued=1]
+start task: VirtualThread[#35]/runnable@ForkJoinPool-1-worker-4
+start task: VirtualThread[#34]/runnable@ForkJoinPool-1-worker-5
+start task: VirtualThread[#28]/runnable@ForkJoinPool-1-worker-2
+[parallelism=12, size=8, mounted=8, queued=1]
+start task: VirtualThread[#36]/runnable@ForkJoinPool-1-worker-9
+end task: VirtualThread[#35]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#27]/runnable@ForkJoinPool-1-worker-9
+end task: VirtualThread[#34]/runnable@ForkJoinPool-1-worker-4
+end task: VirtualThread[#31]/runnable@ForkJoinPool-1-worker-11
+end task: VirtualThread[#32]/runnable@ForkJoinPool-1-worker-5
+end task: VirtualThread[#33]/runnable@ForkJoinPool-1-worker-7
+end task: VirtualThread[#36]/runnable@ForkJoinPool-1-worker-3
+end task: VirtualThread[#28]/runnable@ForkJoinPool-1-worker-2
+end task: VirtualThread[#30]/runnable@ForkJoinPool-1-worker-10
+end task: VirtualThread[#29]/runnable@ForkJoinPool-1-worker-12
+[parallelism=12, size=12, mounted=0, queued=0]
+
+
+2. mxBean.setParallelism:
+-------------------------
+package com.savan.virtualthread;
+
+import jdk.management.VirtualThreadSchedulerMXBean;
+import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+
+public class VirtualThread {
+
+    public static void task() {
+        System.out.println("start task: "+Thread.currentThread());
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("end task: "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+
+        int noOfThreads = 10;
+
+        VirtualThreadSchedulerMXBean mxBean = ManagementFactory.getPlatformMXBean(VirtualThreadSchedulerMXBean.class);
+        System.out.println(mxBean);
+        mxBean.setParallelism(1);
+
+        ArrayList<Thread> virtualThreads = new ArrayList<>();
+        for (int i=0; i<noOfThreads; i++) {
+            Thread virtualThread = Thread.ofVirtual().unstarted(VirtualThread::task);
+            virtualThreads.add(virtualThread);
+        }
+        for (Thread virtualThread: virtualThreads) {
+            System.out.println(mxBean);
+            virtualThread.start();
+        }
+        for (Thread virtualThread: virtualThreads) {
+            virtualThread.join();
+        }
+
+        System.out.println(mxBean);
+    }
+}
+o/p:
+[parallelism=12, size=0, mounted=0, queued=0]
+[parallelism=1, size=1, mounted=0, queued=0]
+[parallelism=1, size=1, mounted=1, queued=1]
+[parallelism=1, size=1, mounted=1, queued=1]
+[parallelism=1, size=1, mounted=1, queued=2]
+[parallelism=1, size=1, mounted=1, queued=3]
+[parallelism=1, size=1, mounted=1, queued=4]
+[parallelism=1, size=1, mounted=1, queued=5]
+[parallelism=1, size=1, mounted=1, queued=6]
+[parallelism=1, size=1, mounted=1, queued=7]
+[parallelism=1, size=1, mounted=1, queued=8]
+start task: VirtualThread[#29]/runnable@ForkJoinPool-1-worker-1
+start task: VirtualThread[#30]/runnable@ForkJoinPool-1-worker-2
+start task: VirtualThread[#31]/runnable@ForkJoinPool-1-worker-3
+start task: VirtualThread[#32]/runnable@ForkJoinPool-1-worker-4
+start task: VirtualThread[#33]/runnable@ForkJoinPool-1-worker-5
+start task: VirtualThread[#35]/runnable@ForkJoinPool-1-worker-2
+start task: VirtualThread[#34]/runnable@ForkJoinPool-1-worker-3
+start task: VirtualThread[#37]/runnable@ForkJoinPool-1-worker-4
+start task: VirtualThread[#36]/runnable@ForkJoinPool-1-worker-1
+start task: VirtualThread[#38]/runnable@ForkJoinPool-1-worker-2
+end task: VirtualThread[#29]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#32]/runnable@ForkJoinPool-1-worker-5
+end task: VirtualThread[#31]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#30]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#33]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#35]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#34]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#37]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#36]/runnable@ForkJoinPool-1-worker-6
+end task: VirtualThread[#38]/runnable@ForkJoinPool-1-worker-6
+[parallelism=1, size=8, mounted=0, queued=0]
+
+
+3. VM-Args: -Djdk.virtualThreadScheduler.parallelism=2 -Djdk.virtualThreadScheduler.maxPoolSize=2
+-------------------------------------------------------------------------------------------------
+import jdk.management.VirtualThreadSchedulerMXBean;
+import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+
+public class VirtualThread {
+
+    public static void task() {
+        System.out.println("start task: "+Thread.currentThread());
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("end task: "+Thread.currentThread());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+
+        int noOfThreads = 10;
+
+        VirtualThreadSchedulerMXBean mxBean = ManagementFactory.getPlatformMXBean(VirtualThreadSchedulerMXBean.class);
+        System.out.println(mxBean);
+
+        ArrayList<Thread> virtualThreads = new ArrayList<>();
+        for (int i=0; i<noOfThreads; i++) {
+            Thread virtualThread = Thread.ofVirtual().unstarted(VirtualThread::task);
+            virtualThreads.add(virtualThread);
+        }
+        for (Thread virtualThread: virtualThreads) {
+            System.out.println(mxBean);
+            virtualThread.start();
+        }
+        for (Thread virtualThread: virtualThreads) {
+            virtualThread.join();
+        }
+
+        System.out.println(mxBean);
+    }
+}
+o/p:
+[parallelism=2, size=0, mounted=0, queued=0]
+[parallelism=2, size=0, mounted=0, queued=0]
+[parallelism=2, size=1, mounted=1, queued=1]
+[parallelism=2, size=2, mounted=2, queued=1]
+[parallelism=2, size=2, mounted=2, queued=1]
+[parallelism=2, size=2, mounted=2, queued=2]
+[parallelism=2, size=2, mounted=2, queued=3]
+[parallelism=2, size=2, mounted=2, queued=4]
+[parallelism=2, size=2, mounted=2, queued=5]
+[parallelism=2, size=2, mounted=2, queued=6]
+[parallelism=2, size=2, mounted=2, queued=7]
+start task: VirtualThread[#27]/runnable@ForkJoinPool-1-worker-1
+start task: VirtualThread[#30]/runnable@ForkJoinPool-1-worker-2
+start task: VirtualThread[#31]/runnable@ForkJoinPool-1-worker-2
+start task: VirtualThread[#32]/runnable@ForkJoinPool-1-worker-1
+start task: VirtualThread[#33]/runnable@ForkJoinPool-1-worker-2
+start task: VirtualThread[#34]/runnable@ForkJoinPool-1-worker-1
+start task: VirtualThread[#35]/runnable@ForkJoinPool-1-worker-2
+start task: VirtualThread[#28]/runnable@ForkJoinPool-1-worker-2
+start task: VirtualThread[#29]/runnable@ForkJoinPool-1-worker-2
+start task: VirtualThread[#36]/runnable@ForkJoinPool-1-worker-1
+end task: VirtualThread[#30]/runnable@ForkJoinPool-1-worker-2
+end task: VirtualThread[#31]/runnable@ForkJoinPool-1-worker-1
+end task: VirtualThread[#32]/runnable@ForkJoinPool-1-worker-2
+end task: VirtualThread[#35]/runnable@ForkJoinPool-1-worker-2
+end task: VirtualThread[#34]/runnable@ForkJoinPool-1-worker-1
+end task: VirtualThread[#28]/runnable@ForkJoinPool-1-worker-2
+end task: VirtualThread[#29]/runnable@ForkJoinPool-1-worker-1
+end task: VirtualThread[#27]/runnable@ForkJoinPool-1-worker-1
+end task: VirtualThread[#33]/runnable@ForkJoinPool-1-worker-1
+end task: VirtualThread[#36]/runnable@ForkJoinPool-1-worker-2
+
+
+

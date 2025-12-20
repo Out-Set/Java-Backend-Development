@@ -1,0 +1,66 @@
+{
+    "taskType":"api",
+    "taskName":"post-api-1",
+    "targetName":"http://localhost:8082/scheduledTask",
+    "cronExpression":"0/15 * * * * *",
+    "args":"{\"taskType\": \"api\", \"taskName\": \"get-api-1\", \"targetName\": \"http://localhost:8082/logs/getCommonLogs\", \"cronExpression\": \"0/10 * * * * *\", \"args\": \"no-args\", \"status\": \"FALSE\", \"db\": \"localDB\"}",
+    "status":"FALSE",
+    "db":"localDB"
+}
+
+
+
+
+
+
+{"taskType": "api", 
+"taskName": "get-api-1", 
+"targetName": "http://localhost:8082/logs/getCommonLogs", 
+"cronExpression": "0/10 * * * * *", 
+"args": "no-args",
+ "status": "FALSE", 
+"db": "localDB"}
+
+
+
+[
+{"arg_type":"header",
+"arg_value":"constant",
+arg_name:user_name,
+Constant_value:Savan Pra},
+
+{"arg_type":"parameter",
+"arg_value":"query",
+arg_name:date,
+arg_query:select sysdate from dual}
+]
+
+
+[
+ { "argType":"header",
+   "argValueType":"constant",
+   "argName":"user_name",
+   "argValue":"Savan"
+ },
+
+ { "argType":"parameter",
+   "argValueType":"query",
+   "argName":"date",
+   "argValue":"select sysdate from dual"
+ }
+]
+
+[{"argType":"header","argValueType":"constant","argName":"user_name","argValue":"Savan"},{ "argType":"parameter","argValueType":"query","argName":date,"argValue":"select sysdate from dual"}]
+
+
+[{"argType":"parameter","argValueType":"pathvariable","argName":"id","argValue":2},{"argType":"parameter","argValueType":"param","argName":"id","argValue":2}]
+
+[{"argType":"parameter","argValueType":"pathvariable","argName":"id","argValue":2},{"argType":"parameter","argValueType":"param","argName":"id","argValue":2}]
+
+[{\"argType\":\"parameter\",\"argValueType\":\"pathvariable\",\"argName\":id,\"argValue\":2},{\"argType\":\"parameter\",\"argValueType\":\"param\",\"argName\":id,\"argValue\":2}]
+[{\"argType\":\"parameter\",\"argValueType\":\"pathvariable\",\"argName\":\"id\",\"argValue\":2},{\"argType\":\"parameter\",\"argValueType\":\"param\",\"argName\":\"id\",\"argValue\":2}]"
+
+
+
+
+

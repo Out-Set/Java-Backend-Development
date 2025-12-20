@@ -1,0 +1,25 @@
+1. Find required api.jar
+------------------------
+i.e. If you have Apache Tomcat installed, it’s usually located under: <TOMCAT_HOME>/lib/servlet-api.jar
+
+2. Compile with classpath
+-------------------------
+Use the -cp (or -classpath) option to include the JAR file: 
+Compile: javac -cp "<path-to>/<FileName>.jar" <ClassName>.java
+Run: java -cp ".:<path-to>/<FileName>.jar" <ClassName>
+
+Example: On Linux
+-----------------
+Compile: javac -cp "/home/savan/Downloads/apache-tomcat-9.0.105/lib/servlet-api.jar" FirstServlet.java
+Run: java -cp ".:/home/savan/Downloads/apache-tomcat-9.0.105/lib/servlet-api.jar" FirstServlet
+
+Compile: javac -cp "/home/savan/Desktop/test/mysql-connector-j-9.2.0.jar" jdbc.java
+Run: java -cp ".:/home/savan/Desktop/test/mysql-connector-j-9.2.0.jar" jdbc
+
+Note: On Windows, use ; instead of : as path separator:
+-------------------------------------------------------
+Compile: javac -cp "C:\apache-tomcat\lib\servlet-api.jar" FirstServlet.java
+Run: java -cp "C:\apache-tomcat\lib\servlet-api.jar" FirstServlet
+
+
+

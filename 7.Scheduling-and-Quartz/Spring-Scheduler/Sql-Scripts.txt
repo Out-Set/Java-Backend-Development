@@ -1,0 +1,29 @@
+desc Scheduled_Task;
+
+select * from Scheduled_Task;
+
+truncate table Scheduled_Task;
+
+select * from scheduled_task;
+
+select args from Scheduled_Task where task_name='api-4';
+
+delete from scheduled_task where id>=82 and id<=86;
+
+update scheduled_task set cron_expression ='0/15 * * * * *' where id=81;
+
+delete from scheduled_task where id>=43;
+
+select task_name from scheduled_task where task_type = 'api';
+
+truncate table common_logs;
+
+update scheduled_task set args='[{"argType":"parameter","argValueType":"pathvariable","argName":"id","argValue":2},{"argType":"parameter","argValueType":"param","argName":"id","argValue":2}]' where id =81;
+
+update scheduled_task set target_name ='http://localhost:8888/readById' where id=81;
+
+commit;
+
+
+
+

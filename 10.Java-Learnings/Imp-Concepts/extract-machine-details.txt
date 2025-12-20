@@ -1,0 +1,17 @@
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+public class main {
+    public static void main(String[] args) {
+        String machineName = "UnknownHost";
+        try {
+            machineName = InetAddress.getLocalHost().getHostName();
+            String ipAddr = InetAddress.getLocalHost().getHostAddress();
+            System.out.println("ipAddr: "+ipAddr);
+            System.out.println("machineName: "+machineName);
+            System.out.println(InetAddress.getLocalHost());
+        } catch (UnknownHostException var3) {
+            System.out.println(var3.getMessage());
+        }
+    }
+}

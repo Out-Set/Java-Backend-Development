@@ -1,0 +1,32 @@
+-----------Install---------------------
+Jdk-11
+--------
+sudo apt-get install openjdk-11-jdk
+
+
+Jdk-17
+-------
+sudo apt-get install openjdk-17-jdk
+
+
+
+
+----------Uninstall---------------------------
+List all: $dpkg -l jdk | dpkg --list | grep jdk
+
+
+sudo apt remove jdk-17-openjdk
+
+sudo rm -rf /usr/lib/jvm/jdk-17-openjdk
+
+sudo apt-get autoremove --purge jdk
+
+
+
+
+
+
+
+
+sudo apt remove openjdk-11-jre openjdk-11-jre-headless openjdk-17-jdk-headless openjdk-17-jre-headless
+

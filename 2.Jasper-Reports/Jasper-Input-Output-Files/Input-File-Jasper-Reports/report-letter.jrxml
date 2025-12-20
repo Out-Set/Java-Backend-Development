@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="application-report-letter-production" language="groovy" pageWidth="756" pageHeight="842" columnWidth="752" leftMargin="4" rightMargin="0" topMargin="20" bottomMargin="20" uuid="2bca80e5-9085-48be-949d-900a855141c5">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="68"/>
+	<style name="table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 3">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 3_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 3_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 3_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<subDataset name="New Dataset 1" uuid="0953bcb3-5a0b-456d-8b23-af420d4a951b">
+		<parameter name="applicationNumber" class="java.lang.String">
+			<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+		</parameter>
+		<queryString>
+			<![CDATA[(SELECT
+(SELECT P.FULL_NAME FROM PERSON_INFO P WHERE P.ID = CUS.PERSON_INFO) "CUSTOMER NAME",
+CONCAT((SELECT CODE FROM GENERIC_PARAMETER_FIS WHERE DTYPE = 'CASURL'),CONCAT('creditBureau/bureauHistoryReport/',
+(MAX(CB.DETAILED_REPORTXMLSTORE_ID)))) "CIBIL"
+FROM CREDIT_BUREAU_EXCHANGE_RECORD CB,CUSTOMER CUS
+WHERE CB.CUSTOMER_ID = CUS.ID AND CB.DETAILED_REPORTXMLSTORE_ID IS NOT NULL AND  CUS.ID IN (
+SELECT P.CUSTOMER FROM PARTY P WHERE P.LOAN_APPLICATION_FK = (
+SELECT LA.ID FROM LOAN_APPLICATION LA WHERE LA.APPLICATION_NUMBER = ($P{applicationNumber})))
+and TRUNC(CB.CREATION_TIME_STAMP) < '15-Oct-2017' GROUP BY (CB.CUSTOMER_ID,CUS.PERSON_INFO) union
+SELECT
+(SELECT P.FULL_NAME FROM PERSON_INFO P WHERE P.ID = CUS.PERSON_INFO) "CUSTOMER NAME",
+CONCAT((SELECT CODE FROM GENERIC_PARAMETER_FIS WHERE DTYPE = 'CASURL'),CONCAT('creditBureau/downloadPdfReport/',
+(MAX(CB.DETAILED_REPORTPDFSTORE_ID)))) "CIBIL"
+FROM CREDIT_BUREAU_EXCHANGE_RECORD CB,CUSTOMER CUS
+WHERE CB.CUSTOMER_ID = CUS.ID AND CB.DETAILED_REPORTPDFSTORE_ID IS NOT NULL AND  CUS.ID IN (
+SELECT P.CUSTOMER FROM PARTY P WHERE P.LOAN_APPLICATION_FK = (
+SELECT LA.ID FROM LOAN_APPLICATION LA WHERE LA.APPLICATION_NUMBER = ($P{applicationNumber})))
+and TRUNC(CB.CREATION_TIME_STAMP) >= '15-Oct-2017' GROUP BY (CB.CUSTOMER_ID,CUS.PERSON_INFO))]]>
+		</queryString>
+		<field name="CUSTOMER NAME" class="java.lang.String"/>
+		<field name="CIBIL" class="java.lang.String"/>
+	</subDataset>
+	<subDataset name="New Dataset 2" uuid="7d85e8c6-c191-484e-930f-06b22d5e27a6">
+		<parameter name="applicationNumber" class="java.lang.String">
+			<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+		</parameter>
+		<queryString>
+			<![CDATA[SELECT
+(SELECT PI.FULL_NAME FROM PERSON_INFO PI WHERE PI.ID = (
+SELECT CUST.PERSON_INFO FROM CUSTOMER CUST WHERE CUST.ID = P.CUSTOMER)) "CUSTOMER NAME",
+(SELECT GP.NAME FROM GENERIC_PARAMETER GP WHERE GP.ID = FIE.TYPE) "TYPE",
+(SELECT BP.NAME FROM BUSINESS_PARTNER BP WHERE BP.ID = (
+SELECT AG.ID FROM AGENCY AG WHERE AG.ID = FIE.VERIFICATION_AGENCY)) "AGENCY",
+(SELECT BP.NAME FROM BUSINESS_PARTNER BP WHERE BP.ID = (
+SELECT AT.ID FROM AGENT AT WHERE AT.ID = FIE.VERIFICATION_AGENT)) "AGENT",
+(CONCAT((SELECT CODE FROM GENERIC_PARAMETER_FIS WHERE DTYPE = 'CASURL'),
+CONCAT('FieldInvestigation/FieldInvestigationVerification/getAttachedDocument/',
+D.DOCUMENT_STORE_ID))) "FIV"
+FROM
+DOCUMENT D,FIELD_INVESTIGATION_ENTRY FIE,
+FIELD_INVESTIGATION FI,PARTY P
+WHERE
+D.FK_FIELD_INVESTIGATION_ENTRY = FIE.ID
+AND
+FIE.FIELD_INVESTIGATION_FK = FI.ID AND FI.ID IN (P.FIELD_INVESTIGATION)
+AND
+P.LOAN_APPLICATION_FK = (
+SELECT ID FROM LOAN_APPLICATION WHERE APPLICATION_NUMBER = ($P{applicationNumber}))]]>
+		</queryString>
+		<field name="CUSTOMER NAME" class="java.lang.String"/>
+		<field name="TYPE" class="java.lang.String"/>
+		<field name="AGENCY" class="java.lang.String"/>
+		<field name="AGENT" class="java.lang.String"/>
+		<field name="FIV" class="java.lang.String"/>
+	</subDataset>
+	<subDataset name="New Dataset 3" uuid="3a42759f-ba12-4be7-b3cf-bfbc9c1f2ef7">
+		<parameter name="applicationNumber" class="java.lang.String">
+			<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+		</parameter>
+		<queryString>
+			<![CDATA[(SELECT
+LA.APPLICATION_NUMBER "APPLICATION NUMBER",
+R.RCU_STATUS "RCU STATUS",
+(SELECT BP.NAME FROM BUSINESS_PARTNER BP WHERE BP.ID = (
+SELECT AG.ID FROM AGENCY AG WHERE AG.ID = R.RCU_AGENCY)) "AGENCY",
+(CONCAT((SELECT CODE FROM GENERIC_PARAMETER_FIS WHERE DTYPE = 'CASURL'),
+CONCAT('LoanApplication/RCU/showAttachment/',
+D.DOCUMENT_STORE_ID))) "RCU"
+FROM
+DOCUMENT D,JT_RCU_DOCUMENT JRD,
+RCUVERDICT R,LOAN_APPLICATION LA
+WHERE
+D.ID = JRD.ATTACHED_DOCUMENT_LIST
+AND
+R.ID = JRD.RCUVERDICT
+AND
+R.ID = LA.APPLICATIONRCUVERDICT
+AND
+LA.APPLICATION_NUMBER = ($P{applicationNumber}))]]>
+		</queryString>
+		<field name="APPLICATION NUMBER" class="java.lang.String"/>
+		<field name="RCU STATUS" class="java.lang.String"/>
+		<field name="AGENCY" class="java.lang.String"/>
+		<field name="RCU" class="java.lang.String"/>
+	</subDataset>
+	<parameter name="appNo" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+(SELECT LA.APPLICATION_NUMBER FROM LOAN_APPLICATION LA WHERE LA.APPLICATION_NUMBER = ($P{appNo})) "APPLICATION NUMBER",
+(SELECT PI.FULL_NAME FROM PERSON_INFO PI WHERE PI.ID = (
+SELECT CUST.PERSON_INFO FROM CUSTOMER CUST WHERE CUST.ID = (
+SELECT P.CUSTOMER FROM PARTY P WHERE P.PARTY_ROLE = '0' AND P.LOAN_APPLICATION_FK = (
+SELECT LA.ID FROM LOAN_APPLICATION LA WHERE LA.APPLICATION_NUMBER = ($P{appNo}))))) "CUSTOMER NAME",
+((SELECT CODE FROM GENERIC_PARAMETER_FIS WHERE DTYPE = 'CASURL')||'camReport/core/homeLoan/'||
+(SELECT LA.ID FROM LOAN_APPLICATION LA WHERE LA.APPLICATION_NUMBER = ($P{appNo}))) "CAM",
+CASE (SELECT NVL(SL.LOAN_ACCOUNT_NUMBER,'NULL') FROM LOAN_APPLICATION LA,SUB_LOAN SL WHERE LA.ID = SL.APPLICATION_FK
+AND APPLICATION_NUMBER = ($P{appNo})) WHEN 'NULL'
+THEN ((SELECT CODE FROM GENERIC_PARAMETER_FIS WHERE DTYPE = 'CASURL')||'LoanApplication/dcb/generateSanctionLetter?appId='||
+(SELECT ID FROM LOAN_APPLICATION WHERE APPLICATION_NUMBER = ($P{appNo})))
+ELSE (SELECT G.CODE||'lead/getAttachedDocument/'|| O.ID AS
+FROM ORACLE_DOCUMENT_ENTITY O,GENERIC_PARAMETER_FIS G WHERE G.DTYPE = 'CASURL'
+AND O.ID IN (
+SELECT MAX(DOCUMENT_STORE_ID) FROM DOCUMENT WHERE COMMUNICATION_FK IN (
+SELECT ID FROM COMMUNICATION_TRAIL WHERE COMMUNICATION_FK IN (
+SELECT ID FROM COMMUNICATION WHERE OWNER_ENTITY_URI IN ('com.nucleus.core.loan.LoanApplication:'||
+(SELECT ID FROM LOAN_APPLICATION WHERE APPLICATION_NUMBER = ($P{appNo}))))))) END "SANCTION"
+FROM DUAL]]>
+	</queryString>
+	<field name="APPLICATION NUMBER" class="java.lang.String"/>
+	<field name="CUSTOMER NAME" class="java.lang.String"/>
+	<field name="CAM" class="java.lang.String"/>
+	<field name="SANCTION" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="62" splitType="Stretch">
+			<staticText>
+				<reportElement uuid="d8f6d30a-1c1d-42d2-af3d-94d1270ccda1" x="178" y="24" width="300" height="22"/>
+				<textElement textAlignment="Center">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Miscellaneous Report and Letter]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="43" splitType="Stretch">
+			<rectangle>
+				<reportElement uuid="3b467495-d534-4a1c-9f56-6f702415666f" x="0" y="0" width="742" height="43" backcolor="#FFFFCC"/>
+			</rectangle>
+			<staticText>
+				<reportElement uuid="387f58ae-b56f-4497-9162-20b0e5acaf1b" x="37" y="12" width="127" height="20" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[APPLICATION NUMBER :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement uuid="7eebdadf-d0ce-40ab-85f5-a0fa4f2d28ff" x="378" y="12" width="117" height="20" backcolor="#CCCCCC">
+					<printWhenExpression><![CDATA[!($F{CUSTOMER NAME}.isEmpty())]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[PRIMARY CUSTOMER : ]]></text>
+			</staticText>
+			<textField>
+				<reportElement uuid="43ecaaf1-e8ff-4236-868a-4346af074d62" x="164" y="12" width="143" height="20" forecolor="#006666" backcolor="#CCCCCC"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{APPLICATION NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement uuid="b65d8f5f-6c8e-4819-a997-2b1cf7b661aa" x="495" y="12" width="122" height="20" forecolor="#006666" backcolor="#CCCCCC">
+					<printWhenExpression><![CDATA[!($F{CUSTOMER NAME}.isEmpty())]]></printWhenExpression>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{CUSTOMER NAME}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="688" splitType="Stretch">
+			<textField hyperlinkType="Reference">
+				<reportElement uuid="41f4178f-9a92-4a3b-be9b-130a24f19c73" x="137" y="50" width="66" height="20" forecolor="#3333FF"/>
+				<textElement verticalAlignment="Middle">
+					<font isUnderline="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Click Here"]]></textFieldExpression>
+				<hyperlinkReferenceExpression><![CDATA[$F{CAM}]]></hyperlinkReferenceExpression>
+			</textField>
+			<staticText>
+				<reportElement uuid="da493a86-3c5a-4866-818c-bed1ad8db196" x="30" y="50" width="86" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="false" isUnderline="true"/>
+				</textElement>
+				<text><![CDATA[CAM Report : ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement uuid="42041d53-806b-42df-8412-8e9e49497e37" x="30" y="207" width="86" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="false" isUnderline="true"/>
+				</textElement>
+				<text><![CDATA[CIBIL Report : ]]></text>
+			</staticText>
+			<componentElement>
+				<reportElement uuid="d42f0813-693d-4275-b6b9-ea512c9faa49" key="table 1" style="table 1" x="31" y="233" width="360" height="80" isRemoveLineWhenBlank="true"/>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" whenNoDataType="AllSectionsNoDetail">
+					<datasetRun subDataset="New Dataset 1" uuid="e334cc0e-29c5-4757-9bbb-ec001884017a">
+						<datasetParameter name="applicationNumber">
+							<datasetParameterExpression><![CDATA[$P{appNo}]]></datasetParameterExpression>
+						</datasetParameter>
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="169" uuid="d052db8d-788f-4f9d-b301-94cc0503e502">
+						<jr:columnHeader style="table 1_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="9e1016e0-f3a1-4c7b-8cdb-066160c302c5" x="0" y="0" width="169" height="30"/>
+								<textElement verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[   CUSTOMER NAME]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 1_TD" height="37" rowSpan="1">
+							<textField>
+								<reportElement uuid="b1af459f-74ab-4608-8265-ad20658a845f" x="10" y="0" width="159" height="37"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$F{CUSTOMER NAME}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="278" uuid="089e4bd7-c98a-49b8-87ee-86d0c2e86a60">
+						<jr:columnHeader style="table 1_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="095b9c79-013d-4de7-b06d-b53dbc41e077" x="0" y="0" width="278" height="30"/>
+								<textElement textAlignment="Justified" verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[    CIBIL Report]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 1_TD" height="37" rowSpan="1">
+							<textField hyperlinkType="Reference">
+								<reportElement uuid="cd0a8142-7a8e-4411-9d8a-bc34b89db54a" x="10" y="0" width="267" height="37" forecolor="#3333FF"/>
+								<textElement verticalAlignment="Middle">
+									<font isUnderline="true"/>
+								</textElement>
+								<textFieldExpression><![CDATA["Click Here"]]></textFieldExpression>
+								<hyperlinkReferenceExpression><![CDATA[$F{CIBIL}]]></hyperlinkReferenceExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+			<componentElement>
+				<reportElement uuid="4a2fe3d4-2d03-4616-992b-dcd2a5057c13" key="table 2" style="table 2" x="31" y="406" width="360" height="86" isRemoveLineWhenBlank="true"/>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" whenNoDataType="AllSectionsNoDetail">
+					<datasetRun subDataset="New Dataset 2" uuid="363fd3ac-f1f6-4330-9498-30f9b682944d">
+						<datasetParameter name="applicationNumber">
+							<datasetParameterExpression><![CDATA[$P{appNo}]]></datasetParameterExpression>
+						</datasetParameter>
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="117" uuid="076f81ba-c3d6-4ddd-a9d5-aac59d061cc7">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="a1d91773-94d0-40e1-9e2a-290cde3779e8" x="0" y="0" width="117" height="30"/>
+								<textElement verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[   CUSTOMER NAME]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 2_TD" height="39" rowSpan="1">
+							<textField>
+								<reportElement uuid="28591d6f-d781-467b-aa4e-3f6a0e30b8e6" x="10" y="0" width="107" height="39"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$F{CUSTOMER NAME}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="102" uuid="e4f053bb-37de-4245-a8a2-64751cc26671">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="ebd63bf6-6c21-4896-910f-c533ce730820" x="0" y="0" width="100" height="30"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[TYPE]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 2_TD" height="39" rowSpan="1">
+							<textField>
+								<reportElement uuid="e720d77a-f9eb-4190-8045-f8132dad4c0a" x="10" y="0" width="90" height="39"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$F{TYPE}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="119" uuid="252854f8-9ccb-40fd-bc8e-c93195ee6047">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="7ca6455c-0176-4027-9cb7-51c016d21dce" x="0" y="0" width="119" height="30"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[AGENCY]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 2_TD" height="39" rowSpan="1">
+							<textField>
+								<reportElement uuid="ebf97947-2219-4c73-abf1-7849fc4dbd21" x="10" y="0" width="109" height="39"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$F{AGENCY}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="109" uuid="bab543c8-dd48-45a3-8486-cffb47e4866e">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="6203e2ee-d0bf-4889-9bf5-abdf43c9c4bd" x="0" y="0" width="90" height="30"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[AGENT]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 2_TD" height="39" rowSpan="1">
+							<textField>
+								<reportElement uuid="831a4a15-181b-4bbe-b5a8-03bcda87b5de" x="10" y="0" width="99" height="39"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$F{AGENT}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="132" uuid="21434fb9-13f7-42c8-a00b-fbcbefc30325">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="82a92dfb-5359-4129-83bf-9ec23adc5bb2" x="0" y="0" width="111" height="30"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[FIV]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 2_TD" height="39" rowSpan="1">
+							<textField hyperlinkType="Reference">
+								<reportElement uuid="f80e33a8-4352-49a7-a310-4bd8fc3fd2c3" x="10" y="0" width="101" height="39" forecolor="#3333FF"/>
+								<textElement verticalAlignment="Middle">
+									<font isUnderline="true"/>
+								</textElement>
+								<textFieldExpression><![CDATA["Click Here"]]></textFieldExpression>
+								<hyperlinkReferenceExpression><![CDATA[$F{FIV}]]></hyperlinkReferenceExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+			<staticText>
+				<reportElement uuid="d1727544-79e6-4099-bd65-0bdd79a2f971" x="32" y="378" width="132" height="23"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="false" isUnderline="true"/>
+				</textElement>
+				<text><![CDATA[FI Verification Report : ]]></text>
+			</staticText>
+			<componentElement>
+				<reportElement uuid="ea25e3b6-1fb6-4c27-959b-6e7784fc7d73" key="table 3" style="table 3" x="32" y="591" width="360" height="88" isRemoveLineWhenBlank="true"/>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" whenNoDataType="AllSectionsNoDetail">
+					<datasetRun subDataset="New Dataset 3" uuid="ab83f033-4a94-4151-a63e-d5045882ed90">
+						<datasetParameter name="applicationNumber">
+							<datasetParameterExpression><![CDATA[$P{appNo}]]></datasetParameterExpression>
+						</datasetParameter>
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="150" uuid="71818906-49d5-4bfb-99bc-8ad5a1e0464e">
+						<jr:columnHeader style="table 3_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="a71cbb73-eeb2-4b6f-83a7-b0041eb6b1f3" x="0" y="0" width="150" height="30"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[ APPLICATION NUMBER]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 3_TD" height="33" rowSpan="1">
+							<textField>
+								<reportElement uuid="8dd38068-617c-4d30-9c2b-44d9a9611622" x="10" y="0" width="140" height="33"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$F{APPLICATION NUMBER}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="127" uuid="c2d21281-f499-434c-8f80-bca53a547a9f">
+						<jr:columnHeader style="table 3_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="f19b85fd-0317-40da-a18f-09e29b361145" x="0" y="0" width="127" height="30"/>
+								<textElement verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[     RCU STATUS]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 3_TD" height="33" rowSpan="1">
+							<textField>
+								<reportElement uuid="fa58d507-225b-42e1-919c-ffaac5dd5660" x="10" y="0" width="117" height="33"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$F{RCU STATUS}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="126" uuid="38249f61-e2e5-4236-b002-9fd46295ba4e">
+						<jr:columnHeader style="table 3_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="a07722c3-c4b4-4756-a64d-80778680b5a0" x="0" y="0" width="126" height="30"/>
+								<textElement verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[      AGENCY]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 3_TD" height="33" rowSpan="1">
+							<textField>
+								<reportElement uuid="13c69d06-9066-445c-897f-fcb9bd647cac" x="10" y="0" width="116" height="33"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$F{AGENCY}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="169" uuid="618b269e-22ce-4bb7-ad8d-6449dfdb40f4">
+						<jr:columnHeader style="table 3_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="e3d3a36e-db6a-4282-8cfd-4771c4223c07" x="0" y="0" width="167" height="30"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font isBold="true"/>
+								</textElement>
+								<text><![CDATA[    RCU SAMPLING DOCUMENT]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table 3_TD" height="33" rowSpan="1">
+							<textField hyperlinkType="Reference">
+								<reportElement uuid="7a831957-c6d7-4ba0-8a7a-09c898fc5672" x="0" y="0" width="167" height="33" forecolor="#3333FF"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font isUnderline="true"/>
+								</textElement>
+								<textFieldExpression><![CDATA["Click Here"]]></textFieldExpression>
+								<hyperlinkReferenceExpression><![CDATA[$F{RCU}]]></hyperlinkReferenceExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+			<staticText>
+				<reportElement uuid="86fa8cd9-1781-4a3b-9b81-8c2ff06402e2" x="32" y="562" width="86" height="23"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="false" isUnderline="true"/>
+				</textElement>
+				<text><![CDATA[RCU Report : ]]></text>
+			</staticText>
+			<textField hyperlinkType="Reference">
+				<reportElement uuid="ef2696bb-e5bc-48b6-b176-de1dc8d35de3" x="176" y="129" width="66" height="20" forecolor="#3333FF"/>
+				<textElement verticalAlignment="Middle">
+					<font isUnderline="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Click Here"]]></textFieldExpression>
+				<hyperlinkReferenceExpression><![CDATA[$F{SANCTION}]]></hyperlinkReferenceExpression>
+			</textField>
+			<staticText>
+				<reportElement uuid="148604f3-f0f8-4dbf-9c2e-3f0702c975cd" x="30" y="129" width="122" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="false" isUnderline="true"/>
+				</textElement>
+				<text><![CDATA[SANCTION Letter : ]]></text>
+			</staticText>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

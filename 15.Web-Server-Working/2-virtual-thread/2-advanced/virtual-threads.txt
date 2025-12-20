@@ -1,0 +1,24 @@
+Virtual Thread:
+===============
+ -> It doesn't have stack memory unlike platform threads.
+ -> It is very light weight so It is just like any normal java objects.
+ -> It works on the top of platform therad.
+ -> It uses platform therad stack-memory for its works.
+ 
+Mount: Binding between virtual-thread and platfrom-thread, after mounting platfrom-thread is referred as carrier-thread.
+UnMount: Detachment of virtual-thread and platfrom-thread after virtual-thread finished its execution.
+	 Since virtual-thread has finished its execution it is eligible for garbage-collection.
+
+Note:
+=====
+ -> virtual-thread has one-to-one relationship with os-thread: NO
+ -> platfrom(carrier)-thread has one-to-one relationship with os-thread: YES
+ -> At any instance of time only one virtual-thread can run on the top of a platfrom-thread.
+ -> If all the platfrom-thread is busy then virtual-thread will wait till JVM mount it with any platfrom-thread.
+ -> Mounting and unmounting is handled by JVM.
+
+Use virtual-thread only incase of I/O bound operations, for normal CPU bound operations platfrom-thread is much better.
+
+
+
+

@@ -1,0 +1,8 @@
+Set and get jvm time-zone:
+--------------------------
+public static void main(String[] args) {
+	System.out.println("TimeZone: " + TimeZone.getDefault().getID());
+	TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"));
+	System.out.println("TimeZone: " + TimeZone.getDefault().getID());
+	SpringApplication.run(CibilApplication.class, args);
+}

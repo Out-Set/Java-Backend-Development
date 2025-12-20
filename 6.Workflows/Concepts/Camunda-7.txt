@@ -1,0 +1,498 @@
+Setup Camunda Modeler:
+----------------------
+All Editions Link: https://camunda.com/download-camunda-7/
+Community-Edition: https://camunda.com/download/platform-7/
+
+Download Version: camunda-modeler-5.19.0-win-x64
+Link: https://github.com/camunda/camunda-modeler/releases/tag/v5.19.0
+
+Extract and open the camunda-modeler-5.19.0-win-x64 and double click 'Camunda Modeler.exe' to start Camunda Modeler
+Now start creating BPMN workflow as per your need.
+
+Note: 
+-----
+1. Do not give space in ids or in variables anywhere, you can seperate it with _ if needed.
+2. While giving the fully classified java class name in a service-task implementation, use . instead of / and also remove .java from end.
+   i.e. com/demo/workflow/flow/LeaveBalanceCheck.java -> wrong
+		com.demo.workflow.flow.LeaveBalanceCheck -> correct
+		
+3. You can save your .bpmn file inside resources folder of spring-boot project in order to avoid copy pasting after each changes.
+   Now just do the changes and deploy.
+4. Each process/workflow should have an unique name and id.
+
+With Apache-Camel: https://camunda.com/blog/2013/09/camunda-bpm-apache-camel-integrating/
+
+=================================================================================================================================
+
+Create Spring-Boot Camunda Project: 
+-----------------------------------
+Goto: Camunda Platform Initiator (start.camunda.com)
+
+Prepare application.properties or application.yml file
+------------------------------------------------------
+camunda.bpm.admin-user:
+  id: admin
+  password: admin
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/camunda-db
+    username: postgres
+    password: 12345
+  jpa:
+    hibernate.ddl-auto: update
+
+Note: If u want to persist the workflow data into db, add data-jpa and respective db(oracle, postgresql or mysql) dependencies.
+	  Else leave as it is, do not mention db-properties it will be handled through H2 internally.
+
+
+=================================================================================================================================
+
+Environment requirements:
+-------------------------
+camunda-bpm-camel Version	Java Version	Camel Version	Camunda Version
+		>= 0.9				>= JDK 11.0			>= 3.14			7.x
+		>= 0.8				>= JDK 1.8			>= 3.2			7.x
+	 0.6 - 0.7				>= JDK 1.8			<= 3.1			7.x
+	 0.4 - 0.5				= JDK 1.7			<= 2.x			7.x
+		<= 0.3				< JDK 1.7			<= 2.x			7.x
+
+
+
+Youtube-Videos:
+---------------
+Camunda-7: https://www.youtube.com/playlist?list=PLxYSIlUk9lvV-8h97LEXNseCtExc_O8fD
+Camunda-8: https://www.youtube.com/playlist?list=PLxYSIlUk9lvXWdlUQYkGzj-igFmCdgjtO
+From-Camunda: https://www.youtube.com/playlist?list=PLJG25HlmvsOUnCziyJBWzcNh7RM5quTmv
+
+
+Documentation:
+--------------
+Java-Doc: https://docs.camunda.org/javadoc/camunda-bpm-platform/7.3/
+
+=================================================================================================================================
+
+Rest-Api-Doc for below things: https://docs.camunda.org/manual/7.16/reference/rest/
+Overview
+OpenAPI
+Authorization
+Batch
+Case Definition
+Case Execution
+Case Instance
+Condition
+Decision Definition
+Decision Requirements Definition
+Deployment
+Engine
+Event Subscription
+Execution
+External Task
+Filter
+Group
+History
+Identity
+Incident
+Job
+Job Definition
+Message
+Metrics
+Migration
+Modification
+Process Definition
+Process Instance
+Signal
+Schema Log
+Task
+Telemetry
+Tenant
+User
+Variable Instance
+Version
+
+=================================================================================================================================
+
+DMN: https://docs.camunda.org/manual/7.16/reference/rest/decision-definition/post-evaluate/
+
+=================================================================================================================================
+
+Getting InputOutputParameter & Field-Injection(local to task) value:
+--------------------------------------------------------------------
+
+import org.camunda.bpm.engine.delegate.DelegateExecution;
+import org.camunda.bpm.engine.delegate.Expression;
+import org.camunda.bpm.engine.delegate.JavaDelegate;
+
+// business-rule-task.bpmn
+public class InputOutputParameter implements JavaDelegate {
+
+    private Expression qaUrl;
+
+    public void setQaUrl(Expression qaUrl) {
+        this.qaUrl = qaUrl;
+    }
+
+    @Override
+    public void execute(DelegateExecution delegateExecution) throws Exception {
+        System.out.println("Input variable: "+delegateExecution.getVariable("local-gender"));
+        System.out.println("Output variable: "+delegateExecution.getVariable("global-gender"));
+
+        // Print Field injection
+        if (qaUrl != null) {
+            System.out.println("Field-Injection qaUrl: " + qaUrl.getValue(delegateExecution));
+        } else {
+            System.out.println("Field-Injection qaUrl was not injected!");
+        }
+    }
+}
+
+=================================================================================================================================
+
+Groovy Scripting:
+-----------------
+def transformedInput = [
+    oppId:input.oppId,
+    sourceSystem:input.sourceSystem,
+    rpsConfig:[
+        rpsEntity:input.rpsConfig.rpsEntity
+    ]
+]
+return transformedInput
+
+
+def transformedOutput = [
+    type:input.type,
+    priority:input.priority,
+    scripting:input.scripting,
+	data:[
+		output:input.output,
+		message:input.message,
+		process:input.process,
+		statusCode:input.statusCode
+	]
+]
+return transformedOutput
+
+
+Normal Scripting:
+-----------------
+def token = "Bearer "+input.access_token
+def authHeaders = ["Authorization":token]
+return authHeaders
+
+=================================================================================================================================
+
+Spring-Boot-Camunda pom.xml:
+----------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.4.4</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.workflow.camunda</groupId>
+	<artifactId>camunda-workflow</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>camunda-workflow</name>
+	<description>Demo project for Spring Boot with Camunda</description>
+
+	<properties>
+		<java.version>17</java.version>
+		<camel.version>4.4.1</camel.version>
+	</properties>
+
+	<!-- Camel & Camunda BOM -->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.camunda.bpm</groupId>
+				<artifactId>camunda-bom</artifactId>
+				<version>7.23.0</version>
+				<scope>import</scope>
+				<type>pom</type>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.camel.springboot</groupId>
+				<artifactId>camel-spring-boot-dependencies</artifactId>
+				<version>${camel.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!--  Camunda Dependencies -->
+		<dependency>
+			<groupId>org.camunda.bpm.springboot</groupId>
+			<artifactId>camunda-bpm-spring-boot-starter-rest</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.camunda.bpm.springboot</groupId>
+			<artifactId>camunda-bpm-spring-boot-starter-webapp</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.camunda.bpm.springboot</groupId>
+			<artifactId>camunda-bpm-spring-boot-starter</artifactId>
+		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.camunda.bpm</groupId>-->
+<!--			<artifactId>camunda-engine-plugin-spin</artifactId>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>org.camunda.spin</groupId>-->
+<!--			<artifactId>camunda-spin-dataformat-all</artifactId>-->
+<!--		</dependency>-->
+
+		<!--  Camunda with Apache-Camel Dependency -->
+		<dependency>
+			<groupId>org.camunda.bpm.extension.camel</groupId>
+			<artifactId>camunda-bpm-camel-spring</artifactId>
+			<version>0.8.0</version>
+		</dependency>
+		
+		<!-- Groovy Dependencies -->
+		<dependency>
+			<groupId>org.codehaus.groovy</groupId>
+			<artifactId>groovy-json</artifactId>
+			<version>3.0.23</version>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.groovy</groupId>
+			<artifactId>groovy-xml</artifactId>
+			<version>3.0.23</version>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.groovy</groupId>
+			<artifactId>groovy-jsr223</artifactId>
+			<version>3.0.23</version>
+		</dependency>
+
+		<!--  Apache-Camel Dependencies  -->
+		<dependency>
+			<groupId>org.apache.camel.springboot</groupId>
+			<artifactId>camel-spring-boot-starter</artifactId>
+			<version>${camel.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.camel.springboot</groupId>
+			<artifactId>camel-http-starter</artifactId>
+			<version>${camel.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.camel.springboot</groupId>
+			<artifactId>camel-servlet-starter</artifactId>
+			<version>${camel.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.camel</groupId>
+			<artifactId>camel-rest</artifactId>
+			<version>${camel.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.camel</groupId>
+			<artifactId>camel-jackson</artifactId>
+			<version>${camel.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+
+=================================================================================================================================
+
+Invoke work-flow in camel and perform groovy-scripting in request & response:
+-----------------------------------------------------------------------------
+
+package com.workflow.camunda.route;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workflow.camunda.groovy.GroovyScript;
+import org.apache.camel.Exchange;
+import org.apache.camel.builder.RouteBuilder;
+import org.camunda.bpm.engine.HistoryService;
+import org.camunda.bpm.engine.RuntimeService;
+import org.camunda.bpm.engine.history.HistoricVariableInstance;
+import org.camunda.bpm.engine.runtime.VariableInstance;
+import org.camunda.bpm.engine.variable.VariableMap;
+import org.camunda.bpm.engine.variable.Variables;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.camunda.bpm.camel.component.CamundaBpmConstants.EXCHANGE_HEADER_PROCESS_INSTANCE_ID;
+
+// services-workflow.bpmn
+
+@Component
+public class WorkflowCallRoute extends RouteBuilder {
+
+    @Autowired
+    private RuntimeService runtimeService;
+
+    @Autowired
+    HistoryService historyService;
+
+    @Autowired
+    private GroovyScript groovyScript;
+
+    private final String requestConversionScript = """
+            def transformedInput = [
+            oppId:input.oppId,
+            sourceSystem:input.sourceSystem,
+            rpsConfig:[
+                rpsEntity:input.rpsConfig.rpsEntity
+                ]
+            ]
+            return transformedInput
+            """;
+
+    private final String responseConversionScript = """
+            def transformedOutput = [
+                type:input.Result_servicesDemoRoute.type,
+                priority:input.Result_servicesDemoRoute.priority,
+                scripting:input.Result_servicesDemoRoute.scripting,
+            	data:[
+            		output:input.Result_servicesDemoRoute.output,
+            		message:input.Result_servicesDemoRoute.message,
+            		process:input.Result_servicesDemoRoute.process,
+            		statusCode:input.Result_servicesDemoRoute.statusCode
+            	]
+            ]
+            return transformedOutput
+            """;
+
+    @Override
+    public void configure() throws Exception {
+
+
+        // To call workflow: services-workflow.bpmn
+        rest("/bpm/call").get()
+                .to("direct:start-workflow");
+
+        from("direct:start-workflow")
+                .process(exchange -> {
+                    // Execute Request-Conversion Groovy-Script
+                    groovyScript.executeGroovyScript(exchange, requestConversionScript);
+
+                    System.out.println("Before Workflow Call ...");
+                    Map<String, Object> body = exchange.getIn().getBody(Map.class);
+                    Map<String,Object> headers =  new HashMap<>(exchange.getIn().getHeaders()) ;
+                    Map<String, Object> requestPayload = new HashMap<>();
+                    headers.remove(Exchange.HTTP_SERVLET_REQUEST);
+                    headers.remove(Exchange.HTTP_SERVLET_RESPONSE);
+                    requestPayload.put("RequestPayload", body);
+                    requestPayload.put("RequestHeaders", headers);
+                    exchange.getIn().setBody(requestPayload);
+                })
+                .log("Current Body Before Workflow Call: ${body}")
+                .to("camunda-bpm:start?processDefinitionKey=services-workflow&copyBodyAsVariable=RequestPayload&copyProperties=true")
+                .log("Started Camunda process with ID: ${header.CamundaBpmProcessInstanceId}")
+                .process(exchange -> {
+                    String processInstanceId = exchange.getProperty(EXCHANGE_HEADER_PROCESS_INSTANCE_ID, String.class);
+                    System.out.println("Process instance id: "+processInstanceId);
+
+                    VariableMap variableMap = Variables.createVariables();
+
+                    // For runtimeService
+                    /*
+                    List<VariableInstance> variables = runtimeService.createVariableInstanceQuery()
+                            .processInstanceIdIn(processInstanceId).variableNameLike("%Result_%")
+                            .list();
+                    for (VariableInstance variable : variables) {
+                        variableMap.put(variable.getName(), variable.getValue());
+                    }
+                     */
+
+                    // For historyService
+                    List<HistoricVariableInstance> variables = historyService.createHistoricVariableInstanceQuery()
+                            .processInstanceId(processInstanceId)
+                            .variableNameLike("Result_%")
+                            .list();
+
+                    for (HistoricVariableInstance variable : variables) {
+                        variableMap.put(variable.getName(), variable.getValue());
+                    }
+
+                    System.out.println("VariableMap Contains: "+variableMap);
+                    ObjectMapper mapper = new ObjectMapper();
+                    exchange.getIn().setBody(mapper.writeValueAsString(variableMap));
+
+                    // Execute Response-Conversion Groovy-Script
+                    groovyScript.executeGroovyScript(exchange, responseConversionScript);
+
+                    exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 200);
+                    exchange.getIn().setHeader("Content-Type", "application/json");
+                })
+                .log("Process Finished with body: ${body}");
+
+
+        // A demo route for: services-workflow.bpmn
+        from("direct:servicesDemoRoute")
+                .process(exchange -> {
+                    Map<String, Object> sampleResp = new HashMap<>();
+                    sampleResp.put("process", "work-flow execution");
+                    sampleResp.put("statusCode", 200);
+                    sampleResp.put("type", "dynamic");
+                    sampleResp.put("priority", "high");
+                    sampleResp.put("scripting", true);
+                    sampleResp.put("output", "needed");
+                    sampleResp.put("message", "Route servicesDemoRoute executed successfully ...");
+                    exchange.getMessage().setBody(sampleResp);
+                })
+                .log("Route servicesDemoRoute executed successfully ...");
+
+    }
+
+}

@@ -1,0 +1,126 @@
+HTML Template of BATCH-EMAIL-NOTIFICATIONS:
+===========================================
+
+BATCH_SUBMISSION:
+-----------------
+<html>
+    <body>
+		<div>Hi HO Accounts team,</div>
+		<div>Batch Number ${BATCHNUM} has been created/submitted successfully with below receipts.</div>
+		<p>Receipt numbers:</p>
+		<ul>
+			<#list RECEIPTNUMS as receiptNum>
+				<li>Receipt number: ${receiptNum}</li>
+			</#list>
+		</ul>
+		<div>Regards,</div>
+		<div>${BATCHCREATOR}, ${ECODE}</div>
+    </body>
+</html>
+
+
+BATCH_APPROVAL:
+---------------
+<html>
+    <body>
+		<div>Hi ${BATCHCREATOR} & ${ECODE},</div>
+		<div>Batch Number ${BATCHNUM} has been approved successfully with below receipts.</div>
+		<p>Receipt numbers:</p>
+		<ul>
+			<#list RECEIPTNUMS as receiptNum>
+				<li>Receipt number: ${receiptNum}</li>
+			</#list>
+		</ul>
+		<div>Regards,</div>
+		<div>gcollect.support@grihumhousing.com</div>
+    </body>
+</html>
+
+
+BATCH_REJECTION:
+----------------
+<html>
+    <body>
+		<div>Hi ${BATCHCREATOR} & ${ECODE},</div>
+		<div>Batch Number ${BATCHNUM} has been rejected due to ${REJECT_REASON} from Gcollect application with below receipts.</div>
+		<p>Receipt numbers:</p>
+		<ul>
+			<#list RECEIPTNUMS as receiptNum>
+				<li>Receipt number: ${receiptNum}</li>
+			</#list>
+		</ul>
+		<div>Regards,</div>
+		<div>HO Accounts team</div>
+    </body>
+</html>
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+New-Template:
+=============
+
+FOLLOWUP_CREATE
+---------------
+
+<html>
+    <body>
+		<p>Dear ${CUSTOMER_NAME},</p>
+		<p>Followup with ${DISPOSITION_CODE} and ${SUB_DISPOSITION_CODE} has been Captured.</p>
+		
+		<div>Sincerely,<div>
+		<div>Aavas Financiers<div>
+	</body>
+</html>
+
+
+<html>
+    <body>
+        <p>Dear ${CUSTOMER_NAME},</p>
+        <p>Followup with ${DISPOSITION_CODE} and ${SUB_DISPOSITION_CODE} has been Captured.</p>
+        
+        <div>Sincerely,<div>
+        <div>Aavas Financiers<div>
+        <div>
+            <img src="data:image/jpeg;base64,${TEMPLATE_LOGO}" alt="" height="50px" width="130px">
+        <div>
+    </body>
+</html>
+
+
+
+{"CC":"saurabh.kumar@bitsflowtech.com,savan.prajapati@bitsflowtech.com","SUBJECT":"Test Email","CUSTOMER_NAME":"Saurabh Kumar","DISPOSITION_CODE":"DISP01","SUB_DISPOSITION_CODE":"SDISP01","TEMPLATE_LOGO_FILE_PATH":"C:/Users/hp/Downloads/awaslogo.png"}
+
+
+
+
+jsonData:
+=========
+
+{"CC":"saurabh.kumar@bitsflowtech.com,savan.prajapati@bitsflowtech.com","RECEIPTNUMS":["123","456","789"],"BATCHNUM":"BATCH01","SUBJECT":"Test Email","ECODE":"SAU456","BATCHCREATOR":"Saurabh Kumar"}
+
+{"EMAIL_TEMPLATE_DATA": {"NAME":"SAVAN","ADDRESS":"NOIDA","ROLE":"SOFTWARE DEVELOPER"},"CC":"saurabh.kumar@bitsflowtech.com,savan.prajapati@bitsflowtech.com","RECEIPTNUMS":["123","456","789"],"BATCHNUM":"BATCH01","SUBJECT":"Test Email","ECODE":"SAU456","BATCHCREATOR":"Saurabh Kumar"}
+
+"EMAIL_TEMPLATE_DATA": {"NAME":"SAVAN","ADDRESS":"NOIDA","ROLE":"SOFTWARE DEVELOPER"}
+
+// Email Template Data
+/*
+		LinkedHashMap<Object, Object> linkedHashMap = (LinkedHashMap<Object, Object>) data.get("EMAIL_TEMPLATE_DATA");
+		if (linkedHashMap != null) {
+			log.info("linkedHashMap data: {}", linkedHashMap);
+
+			log.info("Setting the attachment to emailPayloadMO");
+			List<Attachment> attachments = new ArrayList<Attachment>();
+			Attachment attachment = new Attachment();
+			attachment.setAttachmentFileContent(dfTemplateService.createPdf(linkedHashMap));
+			attachment.setAttachmentFilename("receipt.pdf");
+			attachments.add(attachment);
+			emailPayloadMO.setAttachments(attachments);
+		} else {
+			log.info("No Attachment data");
+		}
+		*/
+		
+		
+	
+
+
+ 

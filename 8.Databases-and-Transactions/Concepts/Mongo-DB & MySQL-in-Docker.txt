@@ -1,0 +1,37 @@
+MYSQL in Docker:
+++++++++++++++++
+docker run --name mysqlDb -p 3306:3306 -e MYSQL_ROOT_PASSWORD=your-password -d MySQL
+
+Use MySQL Shell: 
+----------------
+1.Start MySQL container: docker start mysqlDb
+2.Open MySQL terminal: docker exec -it mysqlDb bash
+3.Connect with MySQL by entering password: mysql -p
+4.Enter your password and use MySQL.
+
+Change MySql Password:
+-----------------------
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'Db@12345$';
+FLUSH PRIVILEGES;
+
+
+Mongo-DB in Docker:
+===================
+docker pull mongo
+(MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD)
+docker run --name mongoDb -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=<your-password> -d mongo
+
+Connection-String: mongodb://localhost:27017/
+
+Use-Mongo Shell:
+----------------
+1.Start Mongo container: docker start mongoDb
+2.Open Mongo terminal: docker exec -it mongoDb mongosh -u admin -p <your-password
+3.Enter your password and use mongo.
+
+
+
+
+
+
+

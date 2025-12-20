@@ -1,0 +1,362 @@
+Event: In a particular moment something happening there, that is an event.
+When that event happened, what I want to do?
+
+Lets Undertstand:
+=================
+
+Config class:
+-------------
+@Configuration
+@ComponentScan("com.savan")
+public class AppConfig {
+
+}
+
+Main class:
+-----------
+public class Main {
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);
+        ZeeCafePublisher bean = context.getBean("zeeCafePublisher", ZeeCafePublisher.class);
+        bean.streamBigBangTheory("EP - 004");
+    }
+}
+
+Publisher:
+----------
+@Component
+public class ZeeCafePublisher {
+
+    @Autowired
+    private SavanListener savanListener;
+
+    @Autowired
+    private AmanListener amanListener;
+    
+    ......
+    ......
+
+    public void streamBigBangTheory(String episodeNo) {
+        System.out.println("Zee Cafe : Starting BBT: "+episodeNo);
+
+        savanListener.watchBigBang(episodeNo);
+        amanListener.watchBigBang(episodeNo);
+    }
+}
+
+Listeners:
+----------
+@Component
+public class SavanListener {
+
+    public void watchBigBang(String episodeNo) {
+        System.out.println("Savan started watching BBT, episode-no: "+episodeNo);
+    }
+}
+
+@Component
+public class AmanListener {
+
+    public void watchBigBang(String episodeNo) {
+        System.out.println("Aman started watching BBT, episode-no: "+episodeNo);
+    }
+}
+
+o/p on main() run:
+------------------
+Zee Cafe : Starting BBT: EP - 004
+Aman started watching BBT, episode-no: EP - 004
+Savan started watching BBT, episode-no: EP - 004
+
+This is not a good approach: bcoz
+=================================
+ -> Each time there is a new listener, you need to inject it into publisher class.
+ -> And then call them.
+ 
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Better implementation:
+======================
+
+Config class:
+-------------
+@Configuration
+@ComponentScan("com.savan")
+public class AppConfig {
+
+}
+
+Main class:
+-----------
+public class Main {
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);
+        ZeeCafePublisher bean = context.getBean("zeeCafePublisher", ZeeCafePublisher.class);
+        bean.streamBigBangTheory("EP - 004");
+    }
+}
+
+Event:
+------
+public class BigBangTheoryEvent extends ApplicationEvent {
+
+    private String episodeNo;
+
+    public BigBangTheoryEvent(Object source) {
+        super(source);
+    }
+
+    public BigBangTheoryEvent(Object source, String episodeNo) {
+        super(source);
+        this.episodeNo = episodeNo;
+    }
+
+    public String getEpisodeNo() {
+        return episodeNo;
+    }
+}
+
+Publisher:
+----------
+@Component
+public class ZeeCafePublisher {
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    public void streamBigBangTheory(String episodeNo) {
+        System.out.println("Zee Cafe : Starting BBT: "+episodeNo);
+
+        applicationEventPublisher.publishEvent(new BigBangTheoryEvent(this, episodeNo));
+    }
+}
+
+Listeners:
+----------
+@Component
+public class SavanListener implements ApplicationListener<BigBangTheoryEvent> {
+
+    public void watchBigBang(String episodeNo) {
+        System.out.println("Savan started watching BBT, episode-no: "+episodeNo);
+    }
+
+    @Override
+    public void onApplicationEvent(BigBangTheoryEvent event) {
+        watchBigBang(event.getEpisodeNo());
+    }
+}
+
+@Component
+public class AmanListener implements ApplicationListener<BigBangTheoryEvent> {
+
+    public void watchBigBang(String episodeNo) {
+        System.out.println("Aman started watching BBT, episode-no: "+episodeNo);
+    }
+
+    @Override
+    public void onApplicationEvent(BigBangTheoryEvent event) {
+        watchBigBang(event.getEpisodeNo());
+    }
+}
+
+o/p on main() run:
+------------------
+Zee Cafe : Starting BBT: EP - 004
+Aman started watching BBT, episode-no: EP - 004
+Savan started watching BBT, episode-no: EP - 004
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Through @EventListener annotation:
+==================================
+
+Config class:
+-------------
+@Configuration
+@ComponentScan("com.savan")
+public class AppConfig {
+
+}
+
+Main class:
+-----------
+public class Main {
+    public static void main(String[] args) {
+        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);
+        ZeeCafePublisher bean = context.getBean("zeeCafePublisher", ZeeCafePublisher.class);
+        bean.streamBigBangTheory("EP - 004");
+    }
+}
+
+Event:
+------
+public class BigBangTheoryEvent {
+
+    private String episodeNo;
+
+    public BigBangTheoryEvent(String episodeNo) {
+        this.episodeNo = episodeNo;
+    }
+
+    public String getEpisodeNo() {
+        return episodeNo;
+    }
+}
+
+public class ComedyCircusEvent {
+
+    private String episodeNo;
+
+    public ComedyCircusEvent(String episodeNo) {
+        this.episodeNo = episodeNo;
+    }
+
+    public String getEpisodeNo() {
+        return episodeNo;
+    }
+}
+
+Publisher:
+----------
+@Component
+public class ZeeCafePublisher {
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    public void streamBigBangTheory(String episodeNo) {
+        System.out.println("Zee Cafe : Starting BBT: "+episodeNo);
+        applicationEventPublisher.publishEvent(new BigBangTheoryEvent(episodeNo));
+    }
+
+    public void streamComedyCircus(String episodeNo) {
+        System.out.println("Zee Cafe : Starting Comedy Circus: "+episodeNo);
+        applicationEventPublisher.publishEvent(new ComedyCircusEvent(episodeNo));
+    }
+}
+
+Listeners:
+----------
+@Component
+public class AmanListener {
+
+    public void watchBigBang(String episodeNo) {
+        System.out.println("Aman started watching BBT, episode-no: "+episodeNo);
+    }
+
+    @EventListener
+    public void amanListenToEvent(BigBangTheoryEvent event) {
+        watchBigBang(event.getEpisodeNo());
+    }
+}
+
+@Component
+public class BhanuListener {
+
+    public void watchBigBang(String episodeNo) {
+        System.out.println("Bhanu started watching BBT, episode-no: "+episodeNo);
+    }
+
+    @EventListener
+    public void bhanuListenToEvent(BigBangTheoryEvent event) {
+        watchBigBang(event.getEpisodeNo());
+    }
+}
+
+@Component
+public class SavanListener {
+
+    public void watchBigBang(String episodeNo) {
+        System.out.println("Savan started watching BBT, episode-no: "+episodeNo);
+    }
+
+    @EventListener
+    public void savanListenToEvent(BigBangTheoryEvent event) {
+        watchBigBang(event.getEpisodeNo());
+    }
+}
+
+@Component
+public class AnujListener {
+
+    public void watchComedyCircus(String episodeNo) {
+        System.out.println("Anuj started watching Comedy Circus, episode-no: "+episodeNo);
+    }
+
+    @EventListener
+    public void anujListenToEvent(BigBangTheoryEvent event) {
+        watchComedyCircus(event.getEpisodeNo());
+    }
+}
+
+@Component
+public class JustinListener {
+
+    public void watchComedyCircus(String episodeNo) {
+        System.out.println("Justin started watching Comedy Circus, episode-no: "+episodeNo);
+    }
+
+    @EventListener
+    public void justinListenToEvent(BigBangTheoryEvent event) {
+        watchComedyCircus(event.getEpisodeNo());
+    }
+}
+
+o/p on main() run:
+------------------
+Zee Cafe : Starting BBT: EP - 004
+Aman started watching BBT, episode-no: EP - 004
+Anuj started watching Comedy Circus, episode-no: EP - 004
+Bhanu started watching BBT, episode-no: EP - 004
+Justin started watching Comedy Circus, episode-no: EP - 004
+Savan started watching BBT, episode-no: EP - 004
+Zee Cafe : Starting Comedy Circus: EP - 007
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Note: 
+=====
+ -> All the listeners are executed synchronously.
+ -> If one listener is blocked then the others has to wait till it completes its execution in order to start their work.
+
+example:
+--------
+@EventListener
+public void justinListenToEvent(BigBangTheoryEvent event) {
+    try {
+         Thread.sleep(5000);
+    } catch (InterruptedException e) {
+         throw new RuntimeException(e);
+    }
+    watchComedyCircus(event.getEpisodeNo());
+}
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+pom.xml:
+========
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.savan.spring.event</groupId>
+    <artifactId>spring-event</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>6.1.3</version>
+        </dependency>
+    </dependencies>
+
+</project>

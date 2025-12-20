@@ -1,0 +1,15 @@
+camunda.bpm.admin-user:
+  id: admin
+  password: admin
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/camunda-db
+    username: postgres
+    password: 12345
+  jpa:
+    hibernate.ddl-auto: update
+
+
+# From Integration
+# camunda.bpm.job-execution.enabled = false

@@ -1,0 +1,43 @@
+In prepareCommunicationData:
+============================
+
+	1. pre-execution-query (THIRD PARTY DB): update status = I where status = N
+
+	2. query (THIRD PARTY DB TO INTEGRATION DB): pick records with status = I and prepare-comm-data
+
+	3. post-execution-query (THIRD PARTY DB): update status = P where status = I
+
+
+In syncCommunicationStatus:
+===========================
+
+	1. pre-execution-query (INTEGRATION DB): select unique_identifier from communication_data_dtl where status = P AND status_synced = false
+
+	2. query (THIRD PARTY DB): SET email_status = true where unique_identifier in (collected from pre-execution-query)
+
+	3. post-execution-query (INTEGRATION DB): update status_synced = true where unique_identifier in (collected from pre-execution-query)
+	
+	
+	
+Previous queries:
+-----------------
+select id AS ID, comm_code AS COMM_CODE, comm_category AS COMM_CATEGORY, comm_data AS COMM_DATA, to_email_address AS TO_EMAIL_ADDRESS, email_subject AS SUBJECT, cc_email_address AS CC, bcc_email_address AS BCC, attachment_file_path AS ATTACHMENT_FILE_PATH, integration_proc_status AS INTEGRATION_PROCESS_STATUS from com_trail_dtl WHERE integration_proc_status = 'N'
+
+UPDATE com_trail_dtl SET integration_proc_status = 'P' WHERE id IN
+
+SELECT unique_identifier FROM communication_data_dtl WHERE environment = 'COLLECTFLOW' AND status = 'P' AND status_synced = false
+
+UPDATE com_trail_dtl SET email_status = true, email_date = CURRENT_TIMESTAMP where id IN
+
+
+New way queries:
+================
+	In prepareCommunicationData:
+		1. UPDATE com_trail_dtl SET integration_proc_status = 'I' WHERE integration_proc_status = 'N'
+		2. select id AS ID, comm_code AS COMM_CODE, comm_category AS COMM_CATEGORY, comm_data AS COMM_DATA, to_email_address AS TO_EMAIL_ADDRESS, email_subject AS SUBJECT, cc_email_address AS CC, bcc_email_address AS BCC, attachment_file_path AS ATTACHMENT_FILE_PATH, integration_proc_status AS INTEGRATION_PROCESS_STATUS from com_trail_dtl WHERE integration_proc_status = 'I'
+		3. UPDATE com_trail_dtl SET integration_proc_status = 'P' WHERE integration_proc_status = 'I'
+		
+	In syncCommunicationStatus:
+		1. SELECT unique_identifier FROM communication_data_dtl WHERE environment = 'COLLECTFLOW' AND status = 'P' AND status_synced = false
+		2. UPDATE com_trail_dtl SET email_status = true, email_date = CURRENT_TIMESTAMP where id IN (from 1 query)
+		3. UPDATE communication_data_dtl SET status_synced = true WHERE environment = 'COLLECTFLOW' AND unique_identifier IN (from 1 query)

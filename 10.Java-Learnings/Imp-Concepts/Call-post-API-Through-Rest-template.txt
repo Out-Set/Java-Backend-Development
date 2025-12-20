@@ -1,0 +1,25 @@
+
+private final String camelApiUrl = "http://localhost:8081/pan/verification";
+
+	
+@PostMapping("/panAadhar/verification")
+
+public Response postRequest(@RequestBody Request request) {
+    	
+    	RestTemplate restTemplate = new RestTemplate();
+
+    	
+        HttpHeaders headers = new HttpHeaders();
+
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+
+        HttpEntity<Request> httpEntity = new HttpEntity<>(request, headers);
+
+
+        ResponseEntity<Response> responseEntity = restTemplate.postForEntity(camelApiUrl, httpEntity, Response.class);
+
+        
+        return responseEntity.getBody();
+
+}

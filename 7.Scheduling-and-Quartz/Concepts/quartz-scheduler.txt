@@ -1,0 +1,416 @@
+Quartz-Scheduler:
+=================
+
+Quartz Documentation: https://www.quartz-scheduler.org/documentation/quartz-2.5.x/tutorials/
+Scheduling in Spring with Quartz: https://www.baeldung.com/spring-quartz-schedule
+Quartz Tutorial: https://www.youtube.com/watch?v=6KavPTuC0pU&pp=ygUhcXVhcnR6IHNjaGVkdWxlciB3aXRoIHNwcmluZyBib290
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Understanding with a Real Example: Class/Bean/Method - Name
+===========================================================
+@Service("orderManager")
+public class OrderService {
+
+    public void placeOrder() {
+        // method code
+    }
+}
+______________________________
+| Term        | Value        |
+| ----------- | ------------ |
+| Class Name  | OrderService |
+| Bean Name   | orderManager |
+| Method Name | placeOrder   |
+------------------------------
+
+Memory Trick:
+-------------
+Class name = file name
+Bean name = what Spring calls it
+Method name = what the function is called
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+spring quartz properties:
+-------------------------
+spring:
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never   # you already created them
+    properties:
+      org.quartz.scheduler.instanceName: springScheduler
+      org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.JobStoreTX
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.useProperties: true
+	  
+spring.quartz.job-store-type = jdbc
+spring.quartz.jdbc.initialize-schema = always/never/embedded
+spring.quartz.properties.org.quartz.threadPool.threadCount = 15
+spring.quartz.properties.org.quartz.scheduler.instanceName = springScheduler
+spring.quartz.properties.org.quartz.jobStore.driverDelegateClass = org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+
+spring.quartz.jdbc.initialize-schema:
+-------------------------------------
+always: Always initialize the Quartz database schema on application startup.
+embedded(default value): Initialize the schema only when using an embedded database (H2, HSQLDB, Derby).
+never: Do not initialize the schema. You must create the Quartz tables manually.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+camel quartz properties:
+------------------------
+camel:
+  component:
+    quartz:
+      properties:
+        org.quartz.scheduler.instanceName: camelScheduler
+        org.quartz.threadPool.threadCount: 5
+
+        # THIS IS THE KEY
+        org.quartz.jobStore.class: org.quartz.simpl.RAMJobStore
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+TRUNCATE all the TABLES of a DATABASE:
+--------------------------------------
+DO
+$func$
+BEGIN
+   EXECUTE (
+      SELECT string_agg(format('TRUNCATE TABLE %I.%I CASCADE;', schemaname, tablename), ' ')
+      FROM pg_tables
+      WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+   );
+END
+$func$;
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+select * from SCHED_PROCESS_GRP_HDR;--Jobs Process Group
+select * from SCHED_PROCESS_GRP_DTL;-- Jobs Process Description
+select * from SCHD_PROCESS_DEF_DTL;-- Process Bean Method and interface new
+
+select * from COM_SCHEDULER_JOB_DTL where approval_status=0;--Jobs Master
+select * from COM_SCHEDULER_EXEC_MAP_DTL where approval_status=0 and JOB_SCHED_DTL_ID is not null order by JOB_SCHED_DTL_ID, EXEC_SEQUENCE;-- Jobs Mapping
+
+select * from COM_SCHEDULER_JOB_EXEC_LOG;-- Execution Logs
+select * from SCHEDULER_ERROR_LOG_DTL;-- error logs
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Develop: Quartz-Scheduler: Run on holidays
+==========================================
+@Entity
+@Table(name = "holiday_master")
+public class HolidayMaster {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "holiday_date", nullable = false)
+    private LocalDate holidayDate;
+
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+
+    @Column(name = "calendar_id", nullable = false)
+    private String calendarId;   // e.g., "defaultHolidayCalendar"
+    
+    // Getters/Setters
+}
+
+| id | holiday_date | name      | description    | is_active | calendar_id            |
+| -- | ------------ | --------- | -------------- | --------- | ---------------------- |
+| 1  | 2025-01-01   | New Year  | Public Holiday | true      | defaultHolidayCalendar |
+| 2  | 2025-12-25   | Christmas | Public Holiday | true      | defaultHolidayCalendar |
+---------------------------------------------------------------------------------------
+
+@Service
+public class HolidayCalendarServiceImpl {
+
+    @Autowired
+    private HolidayMasterRepository holidayRepo;
+
+    @Autowired
+    private Scheduler scheduler;
+
+    public void registerHolidayCalendar(String calendarId) throws SchedulerException {
+        List<HolidayMaster> holidays = holidayRepo.findByCalendarIdAndActive(calendarId, true);
+
+        HolidayCalendar holidayCalendar = new HolidayCalendar();
+
+        for (HolidayMaster holiday : holidays) {
+            holidayCalendar.addExcludedDate(java.sql.Date.valueOf(holiday.getHolidayDate()));
+        }
+
+		//  public void addCalendar(String calName, Calendar calendar, boolean replace, boolean updateTriggers) throws SchedulerException;
+        scheduler.addCalendar(
+                calendarId,
+                holidayCalendar,
+                true,   // replace existing calendar
+                true    // update triggers
+        );
+    }
+}
+
+
+Trigger trigger = TriggerBuilder.newTrigger()
+        .withIdentity("emailTrigger")
+        .modifiedByCalendar("defaultHolidayCalendar")
+        .withSchedule(CronScheduleBuilder.cronSchedule("0 0 9 * * ?"))
+        .build();
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Removed class: SchedulerStreamGroupDetail
+-----------------------------------------
+in SchedulerProcessGroupDetail removed mapping
+@OneToOne(mappedBy = "schedulerProcessGroupDetail", cascade = {
+			CascadeType.ALL}, fetch = FetchType.LAZY, optional = false)
+	private SchedulerStreamGroupDetail schedulerStreamGroupDetail;
+
+package com.savan.quartz.scheduler.domainobject;
+
+import com.savan.quartz.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
+
+@Setter
+@Getter
+@Entity
+@DynamicInsert
+@DynamicUpdate
+@Table(name = "SCHED_STREAM_GRP_DTL", indexes = {
+		@Index(name = "SCHED_STREAM_GRP_DTL_IDX1", columnList = "PROCESS_GRP_DTL_ID")})
+public class SchedulerStreamGroupDetail extends BaseEntity implements Cloneable {
+
+	@Column(name = "STREAM_SOURCE_PATH", length = 255)
+	private String streamSourcePath;
+	@Column(name = "STREAM_HISTORY_PATH", length = 255)
+	private String streamHistoryPath;
+	@Column(name = "FILE_NAME_LOOKUP_PATTERN", length = 255)
+	private String fileNameLookupPattern;
+	@Column(name = "JOB_DATA", length = 255)
+	private String jobData;
+
+	@OneToOne
+	@JoinColumn(name = "PROCESS_GRP_DTL_ID")
+	private SchedulerProcessGroupDetail schedulerProcessGroupDetail;
+
+    protected Object clone() throws CloneNotSupportedException {
+		return super.clone();
+	}
+}
+-----------------------------------------------------
+package com.savan.quartz.scheduler.repo;
+
+import com.savan.quartz.scheduler.domainobject.SchedulerStreamGroupDetail;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface SchedulerStreamGroupDetailRepo extends JpaRepository<SchedulerStreamGroupDetail, Long> {
+
+}
+-----------------------------------------------------
+package com.savan.quartz.scheduler.service;
+
+import com.savan.quartz.scheduler.domainobject.SchedulerStreamGroupDetail;
+
+import java.util.List;
+
+public interface ISchedulerStreamGroupDetailService {
+
+    SchedulerStreamGroupDetail create(SchedulerStreamGroupDetail schedulerStreamGroupDetail);
+
+    SchedulerStreamGroupDetail readById(Long id);
+
+    List<SchedulerStreamGroupDetail> readAll();
+
+    SchedulerStreamGroupDetail update(SchedulerStreamGroupDetail schedulerStreamGroupDetail);
+
+    String deleteById(Long id);
+}
+------------------------------------------------------
+package com.savan.quartz.scheduler.serviceimpl;
+
+import com.savan.quartz.exceptionhandler.RecordNotFoundException;
+import com.savan.quartz.scheduler.domainobject.SchedulerStreamGroupDetail;
+import com.savan.quartz.scheduler.repo.SchedulerStreamGroupDetailRepo;
+import com.savan.quartz.scheduler.service.ISchedulerStreamGroupDetailService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class SchedulerStreamGroupDetailServiceImpl implements ISchedulerStreamGroupDetailService {
+
+    @Autowired
+    private SchedulerStreamGroupDetailRepo schedulerStreamGroupDetailRepo;
+
+    @Override
+    public SchedulerStreamGroupDetail create(SchedulerStreamGroupDetail schedulerStreamGroupDetail) {
+        return schedulerStreamGroupDetailRepo.save(schedulerStreamGroupDetail);
+    }
+
+    @Override
+    public SchedulerStreamGroupDetail readById(Long id) {
+        return schedulerStreamGroupDetailRepo.findById(id)
+                .orElseThrow(()->new RecordNotFoundException("Record with id "+id+", doesn't exist"));
+    }
+
+    @Override
+    public List<SchedulerStreamGroupDetail> readAll() {
+        return schedulerStreamGroupDetailRepo.findAll();
+    }
+
+    @Override
+    public SchedulerStreamGroupDetail update(SchedulerStreamGroupDetail schedulerStreamGroupDetail) {
+        if(schedulerStreamGroupDetailRepo.findById(schedulerStreamGroupDetail.getId()).isEmpty())
+            throw new RecordNotFoundException("Record with id "+schedulerStreamGroupDetail.getId()+", doesn't exist");
+        return schedulerStreamGroupDetailRepo.save(schedulerStreamGroupDetail);
+    }
+
+    @Override
+    public String deleteById(Long id) {
+        schedulerStreamGroupDetailRepo.deleteById(id);
+        return "Record with id "+id+", deleted successfully!";
+    }
+}
+------------------------------------------------------
+package com.savan.quartz.scheduler.controller;
+
+import com.savan.quartz.dto.ResponseDto;
+import com.savan.quartz.scheduler.domainobject.SchedulerStreamGroupDetail;
+import com.savan.quartz.scheduler.service.ISchedulerStreamGroupDetailService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/scheduler/schedulerStreamGroupDetail")
+public class SchedulerStreamGroupDetailController {
+
+    @Autowired
+    private ISchedulerStreamGroupDetailService schedulerStreamGroupDetailService;
+
+    @PostMapping("/create")
+    public ResponseEntity<SchedulerStreamGroupDetail> create(@RequestBody SchedulerStreamGroupDetail schedulerStreamGroupDetail){
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(schedulerStreamGroupDetailService.create(schedulerStreamGroupDetail));
+    }
+
+    @GetMapping("/read/{id}")
+    public ResponseEntity<SchedulerStreamGroupDetail> readById(@PathVariable Long id) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(schedulerStreamGroupDetailService.readById(id));
+    }
+
+    @GetMapping("/read")
+    public ResponseEntity<List<SchedulerStreamGroupDetail>> readAll() {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(schedulerStreamGroupDetailService.readAll());
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<SchedulerStreamGroupDetail> update(@RequestBody SchedulerStreamGroupDetail schedulerStreamGroupDetail) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(schedulerStreamGroupDetailService.update(schedulerStreamGroupDetail));
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<ResponseDto> deleteById(@PathVariable Long id) {
+        ResponseDto response = new ResponseDto(
+                null,
+                schedulerStreamGroupDetailService.deleteById(id),
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(response);
+    }
+}
+
+
+------------------------------------------------------
+
+package com.savan.quartz.scheduler.controller;
+
+import com.savan.quartz.dto.ResponseDto;
+import com.savan.quartz.scheduler.domainobject.JOBSchedulerDetail;
+import com.savan.quartz.scheduler.service.IJOBSchedulerDetailService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/scheduler/jobSchedulerDetail")
+public class JOBSchedulerDetailController {
+
+    @Autowired
+    private IJOBSchedulerDetailService jobSchedulerDetailService;
+
+    @PostMapping("/create")
+    public ResponseEntity<JOBSchedulerDetail> create(@RequestBody JOBSchedulerDetail jobSchedulerDetail){
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(jobSchedulerDetailService.create(jobSchedulerDetail));
+    }
+
+    @GetMapping("/read/{id}")
+    public ResponseEntity<JOBSchedulerDetail> readById(@PathVariable Long id) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(jobSchedulerDetailService.readById(id));
+    }
+
+    @GetMapping("/read")
+    public ResponseEntity<List<JOBSchedulerDetail>> readAll() {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(jobSchedulerDetailService.readAll());
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<JOBSchedulerDetail> update(@RequestBody JOBSchedulerDetail jobSchedulerDetail) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(jobSchedulerDetailService.update(jobSchedulerDetail));
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<ResponseDto> deleteById(@PathVariable Long id) {
+        ResponseDto response = new ResponseDto(
+                null,
+                jobSchedulerDetailService.deleteById(id),
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(response);
+    }
+
+}

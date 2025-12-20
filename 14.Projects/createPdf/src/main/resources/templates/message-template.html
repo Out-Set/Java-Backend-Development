@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Credit Report Update</title>
+</head>
+<body>
+<p>
+    Dear Sir/Madam,
+    <br/>
+    We have initiated update of your credit report for <span th:text="${month}"></span> <span th:text="${year}"></span> for delayed/non-payment of dues against your Tata Capital loan a/c <span th:text="${accountNumber}"></span>.
+    It may take upto <span th:text="${daysToUpdate}"></span> days to update in your credit report.
+    Any payment made after the due date will be reflected in the next month's reporting.
+</p>
+</body>
+</html>

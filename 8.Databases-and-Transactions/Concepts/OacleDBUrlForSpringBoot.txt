@@ -1,0 +1,17 @@
+
+#server.port=8094
+
+# DataBase Config
+spring.datasource.url = jdbc:oracle:thin:@localhost:1521:ORCLCDB
+spring.datasource.username = sys as sysdba
+spring.datasource.password = 12345
+spring.jpa.hibernate.ddl-auto = update
+
+#spring.jpa.hibernate.ddl-auto = create
+#spring.jpa.hibernate.ddl-auto = none
+
+
+spring.jpa.show-sql = true
+
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.OracleDialect
+

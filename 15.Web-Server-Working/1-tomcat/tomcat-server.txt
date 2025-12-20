@@ -1,0 +1,27 @@
+Tomcat Server:
+==============
+ -> It is based on the thread-per-request-model paradigm.
+ -> It creates minimum 10 worker-threads and maximum 200 worker-threads in thread pool by default.
+ -> Limit the worker-threads creation: server.tomcat.threads.max = <an integer value>
+ -> Threads starting with below identifiers are worker threads, which handles the incomming requests.
+ 		(See the worker-threads in debug mode)
+ 		http-nio-<app-port>-exec-1 (status)
+ 		http-nio-<app-port>-exec-2 (status)
+ 		http-nio-<app-port>-exec-3 (status)
+ 		.....
+ 		.....
+ 		
+ -> Worker-threads, status informations
+		runnable: ready to accept/server requests.
+		waiting: waiting to be scheduled.
+ 		running: currently serving/hadling the request.
+ 		suspended: suspended for some reason (i.e. in debug mode due to breakpoint on some lines)
+ 		
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Note: 
+=====
+ -> Either you use RestTemplate or you use RestClinet both are blocking call.
+ -> Peoples prefer RestClinet because it is just more redable that RestTemplate.
+ -> RestClinet internally uses CompletableFuture.get() and .get() is blocking in nature.
+ -> One faulty API can take the entire application down.

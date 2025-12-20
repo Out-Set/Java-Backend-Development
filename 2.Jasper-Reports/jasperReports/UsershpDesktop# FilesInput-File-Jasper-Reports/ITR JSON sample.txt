@@ -1,0 +1,230 @@
+{
+  "generalInformation": [
+    {
+      "name": "VIMALA RAO RACHERLA",
+      "itrType": "3",
+      "pan": "AAAPR8764L",
+      "dob": null,
+      "originalorrevised": "NA",
+      "fathersname": "NA",
+      "dateOfFiling": "20-07-2022",
+      "aadharno": " 3xxx xxxx 8735",
+      "mobileno": "9820519600",
+      "emailid": "carpraa@gmail.com",
+      "address": "205/206, Mayfair Gardens, Near Shoppers Stop, Andheri Railway Station S.O Mumbai MUMBAI 19-Maharashtra 400058",
+      "natureofemployment": "NA",
+      "acknowledgementno": "885767380200722",
+      "taxregime": "NA",
+      "residentialstatus": "NA",
+      "amountDepositedinCurrentAccountExceeding1crore": "Amount (Rs) (If Yes) 0",
+      "travelExpenditureIncuredExceeding2Lakhs": null,
+      "electrictyExpenditureIncuredExceeding1Lakhs": "Amount (Rs) (If Yes) 0",
+      "directorInCompanyAnyTimePreviousYear": "NA",
+      "unlistedEquitySharesHeldInPreviousYear": "NA",
+      "year": "2022-23"
+    }
+  ],
+  "exemptIncome": [
+    {
+      "netAgriculturalincomefortheYear": "0",
+      "incomechargeableundertheheadExemptIncome": "NA"
+    }
+  ],
+  "taxCalculation": [
+    {
+      "refundIfany": "340",
+      "netAgriculturalincomefortheYear": "0",
+      "amountPayable": "0",
+      "incomeFromSalary": "0",
+      "totalTaxesPaid": null,
+      "profitsAndGainsFromBusinessAndProfession": "30,97,224",
+      "incomeUnderHouseProperty": "NA",
+      "totalOfHeadWiseIncome": "31,25,692",
+      "incomeFromOtherSources": "28,468",
+      "incomefromlongtermcapitalgainsperapplicablerates": "0",
+      "incomefromshorttermcapitalgainsperapplicablerates": null,
+      "totalCapitalGains": "NA",
+      "deductionsunderchapterVIA": "1,79,040",
+      "netAnnualIncome": null,
+      "interest": "0.0",
+      "deemedIncomeundersection115JC": "27,46,650",
+      "lossesofcurrentyeartobeCarriedForward": "0",
+      "latefees": "0",
+      "aggregateIncome": "27,46,650",
+      "incomechargeabletoTaxatSpecialRates": "0",
+      "incomechargeableatspecialrateus111etc": "0",
+      "grossTotalIncome": null,
+      "broughtForwardLossesSetoff": null,
+      "balanceafterSetoffCurrentYearLosses": "29,25,692",
+      "lossesofCurrentYearSetoff": "2,00,000",
+      "totalTaxFeeandInterest": "NA",
+      "year": "2022-23"
+    }
+  ],
+  "informationAboutEmployer": [
+    {
+      "tanPanOfEmployer": "NA",
+      "address": "",
+      "name": null,
+      "year": "2022-23"
+    }
+  ],
+  "bankAccountDetails": [
+    {
+      "accountNumber": "61910010080707",
+      "ifsc": null,
+      "year": "2022-23",
+      "nameOfBank": "IDBI BANK LTD"
+    }
+  ],
+  "informationFromHouseProperty": [
+    {
+      "year": "2022-23",
+      "typeOfHouseProperty": "NA",
+      "addressOfProperty": "",
+      "percOfOwnership": "NA",
+      "grossrentreceivedreceivablelettablevalueduringtheyear": "NA",
+      "taxpaidtolocalauthorities": "NA"
+    }
+  ],
+  "IncomeFromOtherSources": [
+    {
+      "dividend": null,
+      "pension": "0",
+      "incomeOthersources": "28,468"
+    }
+  ],
+  "totalTaxesPaid": [
+    {
+      "sCHEDULETDS1DETAILS": "NA",
+      "sCHEDULETDS2DETAILS": "NA",
+      "sCHEDULETDS3DETAILS": "NA",
+      "sCHEDULETCSDETAILS": "NA",
+      "advanceTax": "18,876",
+      "aggregateLiability": "NA",
+      "tds": "1,89,999",
+      "tcs": "0"
+    }
+  ],
+  "deductions": [
+    {
+      "averageOfDeductions": "NA",
+      "80C": "0",
+      "80CCC": "0",
+      "80CCD1": "0",
+      "80CCD1b": "0",
+      "80CCD2": "0",
+      "80D": "20,572",
+      "80DD": "0",
+      "80DDB": "0",
+      "80E": "0",
+      "80EE": "0",
+      "80EEA": "0",
+      "80EEB": "0",
+      "80G": "0",
+      "80GG": "0",
+      "80GGA": "0",
+      "80GGC": "0",
+      "80TTA": "8,468",
+      "80TTB": "0",
+      "80U": "0",
+      "80QQB": "0",
+      "80RRB": "0",
+      "80IA": "0",
+      "80IB": "0",
+      "80JJAA": "0",
+      "80IAB": "0",
+      "80IBA": "0",
+      "80JJA": "0",
+      "80IC80IE": "0",
+      "80CCH": "NA",
+      "anyotherdeductions": "4"
+    }
+  ],
+  "incomeFromSalary": [
+    {
+      "grosssalary": "NA",
+      "totalGrossSalary": "0",
+      "lessAllowancesToTheExtentExemptUnderSection10": "0",
+      "incomeClaimedForReliefFromTaxationUnderSection89a": "NA",
+      "netSalary": null,
+      "incomefromretirementaccountinnotifiedcountryus89A": "NA",
+      "incomefromretirementaccountinotherthannotifiedcountryus89A": "NA",
+      "deductionsus16": "0",
+      "incomechargeableundertheheadSalaries": null,
+      "salaryaspersection171": "NA",
+      "valueofperquisitiesaspersection172": "NA",
+      "profitinliewofsalaryaspersection173": "NA",
+      "deductionsus16ia": "0",
+      "entertainmentallowanceus16ii": "0",
+      "professionaltaxus16iii": "0"
+    }
+  ],
+  "IncomeFromBusinessORProfession": [
+    {
+      "computationofPresumptiveBusinessIncomeundersec44AD": null,
+      "computationofPresumptiveProfIncomeundersec44ADA": "0",
+      "computationofPresumptiveGoodsIncomeundersec44AE": "0",
+      "presumptiveIncome44AE": "NA",
+      "incomechargeableundertheheadProfits": "NA",
+      "salaryInterestPaid": "NA"
+    }
+  ],
+  "IncomeFromCapitalGains": [
+    {
+      "incomeFromLongTermCapitalGainsPerApplicableRates": "0",
+      "incomeFromShortTermCapitalGainsPerApplicableRates": null,
+      "sumofShorttermLongtermCapitalGains": "NA",
+      "incomefromtransferofVirtualDigitalAssetsCol7ofScheduleVDA": "",
+      "incomechargeableundertheheadCapitalGains": null
+    }
+  ],
+  "info": [
+    {
+      "originalOrRevised": "NA",
+      "fatherName": "NA",
+      "aadharNo": " 3xxx xxxx 8735",
+      "mobileNo": "9820519600",
+      "incomeFromRetirementBenefitAccountNotifiedCountryUS89A": "NA",
+      "incomeFromRetirementBenefitAccountMaintainedCountryOtherthanNotifiedCountryUS89A": "NA",
+      "emailId1": "carpraa@gmail.com",
+      "address": "205/206, Mayfair Gardens, Near Shoppers Stop, Andheri Railway Station S.O Mumbai MUMBAI 19-Maharashtra 400058",
+      "natureOfEmployment": "NA",
+      "acknowledgementNo": "885767380200722",
+      "taxRegime": "NA",
+      "residentiStatus": "NA",
+      "deductionsunderchaptervia": "1,79,040",
+      "netannualincome": null,
+      "interest": "0.0",
+      "latefees": "0",
+      "bankname": "NA",
+      "scheduleTcs": "NA",
+      "advanceTax": "18,876",
+      "tds": "1,89,999",
+      "tcs": "0",
+      "selfAssessmentTax": "5,15,000",
+      "totalGrossSalary": "0",
+      "incomeChargeableToTaxAtSpecialRates": "0",
+      "aggregateIncome": "27,46,650",
+      "lossesOfCurrentYear": "0",
+      "deemedIncome": "27,46,650",
+      "lossesOfCurrentYearSetOff": "2,00,000",
+      "balanceAfterSetOffCurrentYearLosses": "29,25,692",
+      "broughtForwardLossesSetOff": null,
+      "sumOfShortterm&Longterm": "NA",
+      "capitalGainsChargeable": null,
+      "totalCapitalGains": "NA",
+      "incomeChargeableToTaxAtSpecialRate": "0",
+      "interestcomputationOfTaxLiabilityOnTotalIncome": "NA",
+      "mobileNo2": "NA",
+      "emailId2": "NA",
+      "amountExceeding1Crore": "Amount (Rs) (If Yes) 0",
+      "directorInACompany": "NA",
+      "unlistedEquityShares": "NA",
+      "partnerInFirm": "NA",
+      "unitInInternationalFinancialServicesCentre": "NA",
+      "fiiOrFpi": "NA",
+      "deductionUnderSection10aa": "0"
+    }
+  ]
+}

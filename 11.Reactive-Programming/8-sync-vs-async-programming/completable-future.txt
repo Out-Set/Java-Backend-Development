@@ -1,0 +1,279 @@
+Synchronous way:
+================
+public class FutureDemo1 {
+
+    public String getFirstName() {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Savan";
+    }
+
+    public String getLastName() {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Prajapati";
+    }
+
+    public static void main(String[] args) {
+
+        long startTime = System.currentTimeMillis();
+        FutureDemo1 futureDemo1 = new FutureDemo1();
+        String firstName = futureDemo1.getFirstName();
+        String lastName  = futureDemo1.getLastName();
+        String completeName = firstName+" "+lastName;
+        System.out.println(completeName);
+        System.out.println("time take to execute these tasks: "+(System.currentTimeMillis()-startTime));
+    }
+}
+o/p:
+Savan Prajapati
+time take to execute these tasks: 4016
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Through Future API:
+===================
+see image: future-api.png
+
+import java.util.concurrent.*;
+
+public class FutureDemo1 {
+
+    public String getFirstName() {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Savan";
+    }
+
+    public String getLastName() {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Prajapati";
+    }
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+
+        System.out.println("main method executed by thread: "+Thread.currentThread().getName());
+        long startTime = System.currentTimeMillis();
+        FutureDemo1 futureDemo1 = new FutureDemo1();
+
+        Callable<String> firstName = new Callable<String>() {
+            @Override
+            public String call() throws Exception {
+                System.out.println("getFirstName() executed by thread: "+Thread.currentThread().getName());
+                return futureDemo1.getFirstName();
+            }
+        };
+        Callable<String> lastName = new Callable<String>() {
+            @Override
+            public String call() throws Exception {
+                System.out.println("getLastName() executed by thread: "+Thread.currentThread().getName());
+                return futureDemo1.getLastName();
+            }
+        };
+
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        Future<String> firstNameFuture = executorService.submit(firstName);
+        Future<String> lastNameFuture = executorService.submit(lastName);
+
+        String completeName = firstNameFuture.get()+" "+lastNameFuture.get();
+        System.out.println(completeName);
+        System.out.println("time take to execute these tasks: "+(System.currentTimeMillis()-startTime));
+    }
+}
+o/p:
+main method executed by thread: main
+getLastName() executed by thread: pool-1-thread-2
+getFirstName() executed by thread: pool-1-thread-1
+Savan Prajapati
+time take to execute these tasks: 2021
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CompletableFuture:
+==================
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
+
+public class CompletableFutureDemo1 {
+
+    public String getName() {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Savan";
+    }
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        System.out.println("main method executed by thread: "+Thread.currentThread().getName());
+        CompletableFutureDemo1 completableFutureDemo1 = new CompletableFutureDemo1();
+        CompletableFuture<String> completableFuture = CompletableFuture.supplyAsync(new Supplier<String>() {
+            @Override
+            public String get() {
+                return completableFutureDemo1.getName();
+            }
+        });
+        String value = completableFuture.get(); // blocking
+        // or String value = completableFuture.join(); // blocking
+        System.out.println(value);
+
+        System.out.println("done ...");
+    }
+}
+o/p: it is blocking with (get()/join()) like in Future.
+main method executed by thread: main
+Savan
+done ...
+______________________________________________________________________________________
+| Above is not the correct way to use CompletableFuture, the correct way is as below |
+--------------------------------------------------------------------------------------
+example-1:
+----------
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+public class CompletableFutureDemo2 {
+
+    public String getName() {
+        System.out.println("getName() executed by thread: "+Thread.currentThread().getName());
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Savan";
+    }
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        System.out.println("main method executed by thread: "+Thread.currentThread().getName());
+        CompletableFutureDemo2 completableFutureDemo2 = new CompletableFutureDemo2();
+        
+        CompletableFuture.supplyAsync(() -> completableFutureDemo2.getName())
+        	.thenApply(str -> str.toUpperCase()) // do operations
+                .thenAccept(name -> System.out.println(name));
+
+        System.out.println("done ...");
+
+        // holding the main thread so that we can get the result of CompletableFuture
+        // this is also we are blocking but to see the effect of CompletableFuture
+        Thread.sleep(5000);
+    }
+}
+o/p:
+main method executed by thread: main
+getName() executed by thread: ForkJoinPool.commonPool-worker-1
+done ...
+SAVAN
+
+example-2:
+----------
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+public class CompletableFutureDemo3 {
+
+    public String getFirstName() {
+        System.out.println("getFirstName() executed by thread: "+Thread.currentThread().getName());
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Savan";
+    }
+
+    public String getLastName() {
+        System.out.println("getLastName() executed by thread: "+Thread.currentThread().getName());
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return "Prajapati";
+    }
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+
+        System.out.println("main method executed by thread: "+Thread.currentThread().getName());
+        long startTime = System.currentTimeMillis();
+        CompletableFutureDemo3 completableFutureDemo3 = new CompletableFutureDemo3();
+        CompletableFuture<String> completableFutureFirstName = CompletableFuture.supplyAsync(() -> completableFutureDemo3.getFirstName());
+        CompletableFuture<String> completableFutureLastName = CompletableFuture.supplyAsync(() -> completableFutureDemo3.getLastName());
+
+	// Blocking (get()/join()) 2 times not a good approach
+//        String s1 = completableFutureFirstName.get();
+//        String s2 = completableFutureLastName.get();
+//        System.out.println(s1+" "+s2);
+
+	// Use thenCombine(): to combine completableFutures
+	// now we are blocking (get()/join()) only once times, good approach
+        String finalOutput = completableFutureFirstName.thenCombine(completableFutureLastName, (str1, str2) -> str1+" "+str2).join();
+        System.out.println(finalOutput);
+
+        System.out.println("time take to execute these tasks: "+(System.currentTimeMillis()-startTime));
+    }
+}
+o/p:
+main method executed by thread: main
+getFirstName() executed by thread: ForkJoinPool.commonPool-worker-1
+getLastName() executed by thread: ForkJoinPool.commonPool-worker-2
+Savan Prajapati
+time take to execute these tasks: 2015
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Note:
+=====
+In all the above CompletableFuture examples we had to block ((get()/join())) the thread at least once in order to get the resultant value.
+
+What if we could return CompletableFuture?
+------------------------------------------
+see image: reactive-manifesto-systems.png
+resource: https://www.reactivemanifesto.org/
+ -> In that case the thread processing our current request will be informed that the final result will came in future 
+    hance it will be able to process another request till the future response comes.
+ -> We will be able to reuse the current thread for other requests till the response come.
+    
+Understand it below examples:
+-----------------------------
+Example-1: Blocking call, traditional thread-per-request-model
+@GetMapping("/product/{id})
+public ProductInfo getProductDetails(@PathVariable int id) {
+
+	ProductInfo productInfo = null;
+	
+	CompletableFuture<Product> productFuture = CompletableFuture.supplyAsync(() -> productService.getProductById(id)); // non-blocking
+	CompletableFuture<Review> reviewFuture = CompletableFuture.supplyAsync(() -> reviewService.getReviewId(id)); // non-blocking
+	
+	productInfo = productFuture.thenCombine(reviewFuture, (product, review) -> new ProductInfo(product, review)).join(); // blocking
+	
+	return productInfo;
+}
+
+Example-2: Non-blocking call (spring-rective-flux/mono) returning CompletableFuture
+@GetMapping("/product/{id})
+public CompletableFuture<ProductInfo> getProductDetails(@PathVariable int id) {
+	
+	CompletableFuture<Product> productFuture = CompletableFuture.supplyAsync(() -> productService.getProductById(id)); // non-blocking
+	CompletableFuture<Review> reviewFuture = CompletableFuture.supplyAsync(() -> reviewService.getReviewId(id)); // non-blocking
+	
+	CompletableFuture<ProductInfo> future = productFuture
+			.thenCombine(reviewFuture, (product, review) -> new ProductInfo(product, review));
+	
+	return future;
+}

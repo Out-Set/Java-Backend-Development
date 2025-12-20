@@ -1,0 +1,55 @@
+Run Application:
+=================
+All running processes with process id: netstat -plnt
+Kill a running Process: kill -9 process-id
+Run a process: nohup java -jar -Dserver.port=8081 integration-web-0.0.1-SNAPSHOT.war &
+	       nohup java -jar -Dserver.port=8081 -Dfinfinity.upload.docs.dir=/opt/Integration/temp  integration-web-0.0.1-SNAPSHOT.war &
+
+	       nohup java -jar -Dserver.port=9091 provakilAPIs-0.0.1-SNAPSHOT.war &
+
+
+
+Command: java -jar -Dserver.port=your_port your-application.war
+i.e. java -jar -Dserver.port=8081 integration-web-0.0.1-SNAPSHOT.war
+
+
+KeyCloak Docker:
+------------------
+docker run -p 8085:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:23.0.7 start-dev
+
+
+Run Vue js:
+------------
+npm run serve -- --port 8082
+
+Too see process
+----------------
+ps -ef | grep java
+ps -ef | grep war
+
+
+Server
+-------
+1.Folder-structure
+++++++++++++++++++
+        -> Put Docker-file and war-file inside the same folder
+
+2.On putty(remove old container and image)
+++++++++++++++++++++++++++++++++++++++++++
+	-> connect with server with putty use attached .ppk file
+	-> docker ps -a
+	-> docker stop <CONTAINER ID>
+	-> docker image
+	-> docker rmi <IMAGE ID>
+
+3.On cmd (buid image)
++++++++++++++++++++++
+	-> docker build -t <give-a-name> . 
+	-> aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 3636547878.dkr.ecr.ap-south-1.amazonaws.com
+      	-> docker tag <given-name>:latest 3636547878.dkr.ecr.ap-south-1.amazonaws.com/apigateway
+      	-> docker push 3636547878.dkr.ecr.ap-south-1.amazonaws.com/apigateway:latest
+
+4.On putty(pull the image)
++++++++++++++++++++++++++
+	-> docker pull 3636547878.dkr.ecr.ap-south-1.amazonaws.com/apigateway:latest
+ 	-> docker run --name integration-container  -e external.property.file=/home/application.properties  -v  /opt/INTG/:/home -p 8081:8081 3636547878.dkr.ecr.ap-south-1.amazonaws.com/apigateway:latest

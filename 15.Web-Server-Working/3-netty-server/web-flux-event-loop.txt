@@ -1,0 +1,264 @@
+Event loop:
+===========
+No of event loop created by your app = No of available cores in your machine
+System.out.println("no of cores: "+Runtime.getRuntime().availableProcessors());
+
+To see the event loop logs: in application.properties
+=====================================================
+logging.level.org.springframework.web = DEBUG
+logging.level.reactor.netty.http.server = DEBUG
+logging.level.reactor.netty.channel = DEBUG
+
+Analysing how event loop processes the request: Read the logs
+=============================================================
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+
+@RestController
+public class ProducerController {
+
+    @GetMapping("/consumer")
+    public Mono<String> consumeData() {
+        System.out.println("executing simpleCall() method... ");
+        return Mono.just("simple data... ");
+    }
+}
+call: http://localhost:8081/consumer
+o/p: consumer data... (after delay of 2 seconds)
+logs: 
+2025-11-23T23:45:51.540+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] r.n.http.server.HttpServerOperations     : [f1093e9d, L:/127.0.0.1:8081 - R:/127.0.0.1:35426] New http connection, requesting read
+2025-11-23T23:45:51.557+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] r.n.http.server.HttpServerOperations     : [f1093e9d, L:/127.0.0.1:8081 - R:/127.0.0.1:35426] Increasing pending responses count: 1
+2025-11-23T23:45:51.573+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] reactor.netty.http.server.HttpServer     : [f1093e9d-1, L:/127.0.0.1:8081 - R:/127.0.0.1:35426] Handler is being applied: org.springframework.http.server.reactive.ReactorHttpHandlerAdapter@5cd7855
+2025-11-23T23:45:51.594+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] o.s.w.s.adapter.HttpWebHandlerAdapter    : [f1093e9d-1] HTTP GET "/consumer"
+2025-11-23T23:45:51.624+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] s.w.r.r.m.a.RequestMappingHandlerMapping : [f1093e9d-1] Mapped to com.savan.consumer.ProducerController#consumer()
+executing consumer() method... 
+2025-11-23T23:45:51.650+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [f1093e9d-1] Using 'text/html' given [text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8] and supported [text/plain;charset=UTF-8, text/event-stream, text/plain;charset=UTF-8, */*]
+2025-11-23T23:45:51.651+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [f1093e9d-1] 0..1 [java.lang.String]
+2025-11-23T23:45:53.665+05:30 DEBUG 13205 --- [consumer-app] [     parallel-1] org.springframework.web.HttpLogging      : [f1093e9d-1] Writing "consumer data... "
+2025-11-23T23:45:53.688+05:30 DEBUG 13205 --- [consumer-app] [     parallel-1] r.n.http.server.HttpServerOperations     : [f1093e9d-1, L:/127.0.0.1:8081 - R:/127.0.0.1:35426] Last HTTP response frame
+2025-11-23T23:45:53.688+05:30 DEBUG 13205 --- [consumer-app] [     parallel-1] r.n.http.server.HttpServerOperations     : [f1093e9d-1, L:/127.0.0.1:8081 - R:/127.0.0.1:35426] Headers are not sent before onComplete().
+2025-11-23T23:45:53.690+05:30 DEBUG 13205 --- [consumer-app] [     parallel-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [f1093e9d-1] Completed 200 OK
+2025-11-23T23:45:53.693+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] r.n.http.server.HttpServerOperations     : [f1093e9d-1, L:/127.0.0.1:8081 - R:/127.0.0.1:35426] Decreasing pending responses count: 0
+2025-11-23T23:45:53.694+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] r.n.http.server.HttpServerOperations     : [f1093e9d-1, L:/127.0.0.1:8081 - R:/127.0.0.1:35426] Last HTTP packet was sent, terminating the channel
+2025-11-23T23:45:53.695+05:30 DEBUG 13205 --- [consumer-app] [or-http-epoll-3] r.netty.channel.ChannelOperations        : [f1093e9d-1, L:/127.0.0.1:8081 - R:/127.0.0.1:35426] [HttpServer] Channel inbound receiver cancelled (subscription disposed).
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Lets observe that whether only 1-thread (event loop) handles multiple requests at the same time with blocking i/o call.
+=======================================================================================================================
+Agenda: Everything on consumer-app
+----------------------------------
+1. Restrict event loop (thread) creation to 1 only, setting below in vm argument.
+	-Dreactor.netty.ioWorkerCount=1 
+	(in intellij: Run -> Edit Configurations -> Select your application -> Modify options -> Add VM opitons)
+2. Run application in debug mode to observe the thread & variables.
+3. Hit the blocking api: http://localhost:8081/consume which further calls: http://localhost:8080/hello (blocking in nature: gives response after 10 seconds sleep).
+4. Call other api: http://localhost:8081/consumer, 3-4 times frequently.
+5. Go and check the logs, you will see only 1-thread (i.e. or-http-epoll-1) is handling all the requests in non-blocking (no-waiting - same thread is executing the all api calls simultaneously) nature.
+6. Go and check the thread & variables, you will see only 1-thread (i.e. reactor-http-epoll-1) is created.
+7. Hence it is proved that the single thread continues accepting, dispatching, and resuming multiple request pipelines simultaneously. This behavior is possible because WebFlux uses reactive programming + non-blocking I/O (NIO).
+
+Conclusion:
+===========
+Spring WebFlux
+--------------
+ -> Single event-loop thread can process many requests concurrently
+ -> No blocking at thread level (unless you explicitly introduce blocking)
+ -> Threads are shared across reactive pipelines
+ -> Scaling is based on event-loop efficiency, not thread count
+
+Spring MVC (Spring Web):
+========================
+ -> Uses Servlet + Tomcat thread-per-request model
+ -> Each request occupies a thread until completion
+ -> Causes thread starvation when calls block (database, REST calls, file I/O)
+ -> Needs a large thread pool to handle many concurrent requests
+
+Summary:
+--------
+ -> Setting Reactor Netty to a single thread and still observing multiple concurrent requests being processed proves the non-blocking nature of Spring WebFlux.
+ -> This would not be possible in Spring MVC, where a single blocking request would hold up a thread and prevent it from serving others.
+
+producer app with spring-web:
+=============================
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+
+ProducerController class:
+-------------------------
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ProducerController {
+
+    @GetMapping("/hello")
+    public String hello() throws InterruptedException {
+        Thread.sleep(10000);
+        return "Hello World!";
+    }
+}
+
+consumer app with spring-webflux:
+=================================
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-webflux</artifactId>
+</dependency>
+
+application.properties:
+-----------------------
+server.port = 8081
+logging.level.org.springframework.web = DEBUG
+logging.level.reactor.netty.http.server = DEBUG
+logging.level.reactor.netty.channel = DEBUG
+
+ProducerController class:
+-------------------------
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import java.time.Duration;
+
+@RestController
+public class ProducerController {
+
+    WebClient webClient = WebClient.builder().baseUrl("http://localhost:8080").build();
+
+    @GetMapping("/consume")
+    public Mono<String> consumeData() {
+        System.out.println("executing consumeData() method... ");
+        // rest call here of producer app
+        Mono<String> response = webClient.get().uri("hello").retrieve().bodyToMono(String.class);
+        return response;
+    }
+
+    @GetMapping("/consumer")
+    public Mono<String> consumer() {
+        System.out.println("executing consumer() method... ");
+        return Mono.just("consumer data... ").delayElement(Duration.ofSeconds(2));
+    }
+
+    @GetMapping("/simple")
+    public Mono<String> simpleCall() {
+        System.out.println("executing simpleCall() method... ");
+        return Mono.just("simple data... ");
+    }
+}
+
+see images: of dir 3-req-resp-flow-with-blocking-io to understand how webflux handles the blocking io call simultaenously with other calls through the event-loop, same is happening in below api call. Analyze the logs you will get it.
+call: http://localhost:8081/consume then http://localhost:8081/consumer, 3-4 times frequently
+logs: from the below logs you can see that only 1-thread or-http-epoll-1 is handling all the requests simultaenously without blocking the requests.
+2025-11-24T00:46:01.028+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [a97cb1f6, L:/127.0.0.1:8081 - R:/127.0.0.1:42388] New http connection, requesting read
+2025-11-24T00:46:01.030+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [a97cb1f6, L:/127.0.0.1:8081 - R:/127.0.0.1:42388] Increasing pending responses count: 1
+2025-11-24T00:46:01.031+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] reactor.netty.http.server.HttpServer     : [a97cb1f6-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42388] Handler is being applied: org.springframework.http.server.reactive.ReactorHttpHandlerAdapter@179d6d4a
+2025-11-24T00:46:01.031+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [a97cb1f6-7] HTTP GET "/consume"
+2025-11-24T00:46:01.032+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] s.w.r.r.m.a.RequestMappingHandlerMapping : [a97cb1f6-7] Mapped to com.savan.consumer.ProducerController#consumeData()
+executing consumeData() method... 
+2025-11-24T00:46:01.035+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [a97cb1f6-7] Using 'text/html' given [text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8] and supported [text/plain;charset=UTF-8, text/event-stream, text/plain;charset=UTF-8, */*]
+2025-11-24T00:46:01.036+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [a97cb1f6-7] 0..1 [java.lang.String]
+2025-11-24T00:46:01.037+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.f.client.ExchangeFunctions       : [42b79497] HTTP GET http://localhost:8080/hello
+2025-11-24T00:46:03.937+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] New http connection, requesting read
+2025-11-24T00:46:03.939+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Increasing pending responses count: 1
+2025-11-24T00:46:03.939+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] reactor.netty.http.server.HttpServer     : [c5c122b7-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Handler is being applied: org.springframework.http.server.reactive.ReactorHttpHandlerAdapter@179d6d4a
+2025-11-24T00:46:03.940+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-8] HTTP GET "/simple"
+2025-11-24T00:46:03.940+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] s.w.r.r.m.a.RequestMappingHandlerMapping : [c5c122b7-8] Mapped to com.savan.consumer.ProducerController#simpleCall()
+executing simpleCall() method... 
+2025-11-24T00:46:03.942+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-8] Using 'text/html' given [text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8] and supported [text/plain;charset=UTF-8, text/event-stream, text/plain;charset=UTF-8, */*]
+2025-11-24T00:46:03.942+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-8] 0..1 [java.lang.String]
+2025-11-24T00:46:03.943+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] org.springframework.web.HttpLogging      : [c5c122b7-8] Writing "simple data... "
+2025-11-24T00:46:03.943+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP response frame
+2025-11-24T00:46:03.943+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Headers are not sent before onComplete().
+2025-11-24T00:46:03.944+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Decreasing pending responses count: 0
+2025-11-24T00:46:03.944+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP packet was sent, terminating the channel
+2025-11-24T00:46:03.945+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.netty.channel.ChannelOperations        : [c5c122b7-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] [HttpServer] Channel inbound receiver cancelled (subscription disposed).
+2025-11-24T00:46:03.945+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-8] Completed 200 OK
+2025-11-24T00:46:03.945+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.channel.ChannelOperationsHandler     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] No ChannelOperation attached.
+2025-11-24T00:46:04.611+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Increasing pending responses count: 1
+2025-11-24T00:46:04.611+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] reactor.netty.http.server.HttpServer     : [c5c122b7-2, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Handler is being applied: org.springframework.http.server.reactive.ReactorHttpHandlerAdapter@179d6d4a
+2025-11-24T00:46:04.612+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-9] HTTP GET "/simple"
+2025-11-24T00:46:04.613+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] s.w.r.r.m.a.RequestMappingHandlerMapping : [c5c122b7-9] Mapped to com.savan.consumer.ProducerController#simpleCall()
+executing simpleCall() method... 
+2025-11-24T00:46:04.615+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-9] Using 'text/html' given [text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8] and supported [text/plain;charset=UTF-8, text/event-stream, text/plain;charset=UTF-8, */*]
+2025-11-24T00:46:04.615+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-9] 0..1 [java.lang.String]
+2025-11-24T00:46:04.615+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] org.springframework.web.HttpLogging      : [c5c122b7-9] Writing "simple data... "
+2025-11-24T00:46:04.616+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-2, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP response frame
+2025-11-24T00:46:04.617+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-2, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Headers are not sent before onComplete().
+2025-11-24T00:46:04.617+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-2, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Decreasing pending responses count: 0
+2025-11-24T00:46:04.617+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-2, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP packet was sent, terminating the channel
+2025-11-24T00:46:04.617+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.netty.channel.ChannelOperations        : [c5c122b7-2, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] [HttpServer] Channel inbound receiver cancelled (subscription disposed).
+2025-11-24T00:46:04.618+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-9] Completed 200 OK
+2025-11-24T00:46:04.618+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.channel.ChannelOperationsHandler     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] No ChannelOperation attached.
+2025-11-24T00:46:05.195+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Increasing pending responses count: 1
+2025-11-24T00:46:05.195+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] reactor.netty.http.server.HttpServer     : [c5c122b7-3, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Handler is being applied: org.springframework.http.server.reactive.ReactorHttpHandlerAdapter@179d6d4a
+2025-11-24T00:46:05.196+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-10] HTTP GET "/simple"
+2025-11-24T00:46:05.196+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] s.w.r.r.m.a.RequestMappingHandlerMapping : [c5c122b7-10] Mapped to com.savan.consumer.ProducerController#simpleCall()
+executing simpleCall() method... 
+2025-11-24T00:46:05.197+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-10] Using 'text/html' given [text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8] and supported [text/plain;charset=UTF-8, text/event-stream, text/plain;charset=UTF-8, */*]
+2025-11-24T00:46:05.197+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-10] 0..1 [java.lang.String]
+2025-11-24T00:46:05.198+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] org.springframework.web.HttpLogging      : [c5c122b7-10] Writing "simple data... "
+2025-11-24T00:46:05.198+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-3, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP response frame
+2025-11-24T00:46:05.199+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-3, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Headers are not sent before onComplete().
+2025-11-24T00:46:05.199+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-3, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Decreasing pending responses count: 0
+2025-11-24T00:46:05.199+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-3, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP packet was sent, terminating the channel
+2025-11-24T00:46:05.200+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.netty.channel.ChannelOperations        : [c5c122b7-3, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] [HttpServer] Channel inbound receiver cancelled (subscription disposed).
+2025-11-24T00:46:05.200+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-10] Completed 200 OK
+2025-11-24T00:46:05.200+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.channel.ChannelOperationsHandler     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] No ChannelOperation attached.
+2025-11-24T00:46:05.642+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Increasing pending responses count: 1
+2025-11-24T00:46:05.643+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] reactor.netty.http.server.HttpServer     : [c5c122b7-4, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Handler is being applied: org.springframework.http.server.reactive.ReactorHttpHandlerAdapter@179d6d4a
+2025-11-24T00:46:05.643+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-11] HTTP GET "/simple"
+2025-11-24T00:46:05.644+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] s.w.r.r.m.a.RequestMappingHandlerMapping : [c5c122b7-11] Mapped to com.savan.consumer.ProducerController#simpleCall()
+executing simpleCall() method... 
+2025-11-24T00:46:05.645+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-11] Using 'text/html' given [text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8] and supported [text/plain;charset=UTF-8, text/event-stream, text/plain;charset=UTF-8, */*]
+2025-11-24T00:46:05.646+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-11] 0..1 [java.lang.String]
+2025-11-24T00:46:05.646+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] org.springframework.web.HttpLogging      : [c5c122b7-11] Writing "simple data... "
+2025-11-24T00:46:05.647+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-4, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP response frame
+2025-11-24T00:46:05.647+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-4, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Headers are not sent before onComplete().
+2025-11-24T00:46:05.647+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-4, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Decreasing pending responses count: 0
+2025-11-24T00:46:05.647+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-4, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP packet was sent, terminating the channel
+2025-11-24T00:46:05.648+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.netty.channel.ChannelOperations        : [c5c122b7-4, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] [HttpServer] Channel inbound receiver cancelled (subscription disposed).
+2025-11-24T00:46:05.648+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-11] Completed 200 OK
+2025-11-24T00:46:05.648+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.channel.ChannelOperationsHandler     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] No ChannelOperation attached.
+2025-11-24T00:46:06.015+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Increasing pending responses count: 1
+2025-11-24T00:46:06.015+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] reactor.netty.http.server.HttpServer     : [c5c122b7-5, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Handler is being applied: org.springframework.http.server.reactive.ReactorHttpHandlerAdapter@179d6d4a
+2025-11-24T00:46:06.016+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-12] HTTP GET "/simple"
+2025-11-24T00:46:06.017+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] s.w.r.r.m.a.RequestMappingHandlerMapping : [c5c122b7-12] Mapped to com.savan.consumer.ProducerController#simpleCall()
+executing simpleCall() method... 
+2025-11-24T00:46:06.020+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-12] Using 'text/html' given [text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8] and supported [text/plain;charset=UTF-8, text/event-stream, text/plain;charset=UTF-8, */*]
+2025-11-24T00:46:06.020+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.r.m.a.ResponseBodyResultHandler  : [c5c122b7-12] 0..1 [java.lang.String]
+2025-11-24T00:46:06.021+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] org.springframework.web.HttpLogging      : [c5c122b7-12] Writing "simple data... "
+2025-11-24T00:46:06.027+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-5, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP response frame
+2025-11-24T00:46:06.027+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-5, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Headers are not sent before onComplete().
+2025-11-24T00:46:06.028+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-5, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Decreasing pending responses count: 0
+2025-11-24T00:46:06.028+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [c5c122b7-5, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] Last HTTP packet was sent, terminating the channel
+2025-11-24T00:46:06.028+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.netty.channel.ChannelOperations        : [c5c122b7-5, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] [HttpServer] Channel inbound receiver cancelled (subscription disposed).
+2025-11-24T00:46:06.029+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [c5c122b7-12] Completed 200 OK
+2025-11-24T00:46:06.029+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.channel.ChannelOperationsHandler     : [c5c122b7, L:/127.0.0.1:8081 - R:/127.0.0.1:42404] No ChannelOperation attached.
+2025-11-24T00:46:11.047+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.r.f.client.ExchangeFunctions       : [42b79497] [9b7aef0d-1] Response 200 OK
+2025-11-24T00:46:11.048+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] reactor.netty.channel.FluxReceive        : [9b7aef0d-1, L:/127.0.0.1:47970 - R:localhost/127.0.0.1:8080] [terminated=false, cancelled=false, pending=0, error=null]: subscribing inbound receiver
+2025-11-24T00:46:11.049+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] org.springframework.web.HttpLogging      : [42b79497] [9b7aef0d-1] Decoded "Hello World!"
+2025-11-24T00:46:11.049+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] org.springframework.web.HttpLogging      : [a97cb1f6-7] Writing "Hello World!"
+2025-11-24T00:46:11.050+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [a97cb1f6-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42388] Last HTTP response frame
+2025-11-24T00:46:11.050+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [a97cb1f6-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42388] Headers are not sent before onComplete().
+2025-11-24T00:46:11.050+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [a97cb1f6-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42388] Decreasing pending responses count: 0
+2025-11-24T00:46:11.051+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.n.http.server.HttpServerOperations     : [a97cb1f6-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42388] Last HTTP packet was sent, terminating the channel
+2025-11-24T00:46:11.051+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] r.netty.channel.ChannelOperations        : [a97cb1f6-1, L:/127.0.0.1:8081 - R:/127.0.0.1:42388] [HttpServer] Channel inbound receiver cancelled (subscription disposed).
+2025-11-24T00:46:11.051+05:30 DEBUG 15225 --- [consumer-app] [or-http-epoll-1] o.s.w.s.adapter.HttpWebHandlerAdapter    : [a97cb1f6-7] Completed 200 OK
+
+
+
+
+
+
+
+
+
+
+

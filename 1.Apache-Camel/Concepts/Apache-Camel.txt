@@ -1,0 +1,24 @@
+// Get Client IP
+ServletRequest getIP = exchange.getIn().getBody(ServletRequest.class);
+log.info("Client IP address is: {}", getIP.getRemoteAddr());
+
+
+
+// Rest Configuration for Camel Rest
+
+@Component
+public class CamelRestConfig extends RouteBuilder{
+
+	@Override
+	public void configure() throws Exception {
+	
+		// Min CORS Configs
+		restConfiguration()
+		.component("servlet")
+        	.enableCORS(true)
+        	//.corsAllowCredentials(true)
+        	.corsHeaderProperty("Access-Control-Allow-Origin", "*")
+		.corsHeaderProperty("Access-Control-Allow-Headers", "*");
+		//.corsHeaderProperty("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");		
+	}
+}

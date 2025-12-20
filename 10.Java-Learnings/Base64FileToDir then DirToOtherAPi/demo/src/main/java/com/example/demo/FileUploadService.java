@@ -1,0 +1,48 @@
+package com.example.demo;
+
+import okhttp3.MediaType;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import okhttp3.*;
+
+import static com.example.demo.StaticConst.AUTH_TOKEN;
+
+public class FileUploadService {
+    public static int upload(String fileName, File tempFile) throws IOException {
+
+        OkHttpClient client = new OkHttpClient().newBuilder().build();
+        MediaType mediaType = MediaType.parse("text/plain");
+        RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("file_new",fileName,
+                        RequestBody.create(MediaType.parse("application/octet-stream"),
+                                tempFile))
+                .addFormDataPart("action_name", "pan card")
+                .build();
+
+        Request request = new Request.Builder()
+                .url("http://194.233.84.104:5090/api/v4/documents/1/files/")
+                .method("POST", body)
+                .addHeader("Authorization", AUTH_TOKEN)
+                .build();
+        Response response = client.newCall(request).execute();
+        return response.code();
+    }
+
+    public static String delete(String fileNameToDelete, String UPLOAD_DIR) throws IOException {
+        try {
+            Path filePathToDelete = Paths.get(UPLOAD_DIR, fileNameToDelete);
+
+            Files.delete(filePathToDelete);
+
+            return "File deleted successfully: " + filePathToDelete;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return "Error deleting file";
+    }
+}

@@ -1,0 +1,86 @@
+
+
+scheduler_monitoring_dtl 
+=====================================================
+--SELECT JOB_NAME, ENABLED ,STATE , LAST_START_DATE, LAST_RUN_DURATION, NEXT_RUN_DATE,JOB_ACTION
+--FROM user_scheduler_jobs;
+--
+--
+--
+--SELECT * FROM  user_scheduler_jobs;
+--
+--JOB_ACTION, ENABLED
+
+CREATE TABLE scheduler_monitoring_dtl AS (
+  SELECT JOB_NAME, ENABLED, STATE, LAST_START_DATE, LAST_RUN_DURATION, NEXT_RUN_DATE, JOB_ACTION
+  FROM user_scheduler_jobs
+);
+
+ALTER TABLE scheduler_monitoring_dtl ADD USER_NAME varchar2(200);
+
+ALTER TABLE scheduler_monitoring_dtl ADD creation_time_stamp timestamp with time zone;
+
+--insert: INSERT INTO scheduler_monitoring_dtl (creation_time_stamp) VALUES (SYSTIMESTAMP);
+
+ALTER TABLE scheduler_monitoring_dtl ADD LOG_ID NUMBER;
+ALTER TABLE scheduler_monitoring_dtl
+ADD CONSTRAINT LOG_pk PRIMARY KEY (LOG_ID);
+
+commit;
+
+select * from scheduler_monitoring_dtl;
+
+truncate table scheduler_monitoring_dtl
+
+desc scheduler_monitoring_dtl;
+
+drop table scheduler_monitoring_dtl;
+
+
+
+
+('INSERT_CUSTOMER'); scheduler
+====================================
+select * from scheduler_monitoring_dtl;
+
+select * from customers;
+
+begin 
+    dbms_scheduler.enable('INSERT_CUSTOMER');
+end;
+
+begin 
+    dbms_scheduler.disable('INSERT_CUSTOMER');
+end;
+
+
+tuesday
+====================
+
+SELECT JOB_NAME, ENABLED, STATE, LAST_START_DATE, LAST_RUN_DURATION, NEXT_RUN_DATE, JOB_ACTION
+  FROM user_scheduler_jobs where JOB_NAME in (select jobs from scheduler_config_dtl where status='A');
+
+insert into scheduler_config_dtl(id,creation_time_stamp,jobs,status) values (1,sysdate,'CUST_JOB','A');
+commit;
+
+
+
+CREATE TABLE scheduler_monitoring_dtl_fsl AS (
+  SELECT * FROM scheduler_monitoring_dtl
+);
+
+SELECT * FROM scheduler_monitoring_dtl_fsl;
+
+CREATE TABLE scheduler_monitoring_dtl_hfl AS (
+  SELECT * FROM scheduler_monitoring_dtl
+);
+
+SELECT * FROM scheduler_monitoring_dtl_hfl;
+commit;
+
+commit;
+
+
+SELECT * FROM scheduler_monitoring_dtl_hfl WHERE job_name = 'INSERT_CUSTOMER';
+
+commit;

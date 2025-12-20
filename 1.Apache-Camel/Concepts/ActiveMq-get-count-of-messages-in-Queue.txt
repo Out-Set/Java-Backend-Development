@@ -1,0 +1,56 @@
+Get count of messages:
+++++++++++++++++++++++
+
+Modify activemq.xml:
+--------------------
+
+docker cp activemq:/opt/apache-activemq/conf/activemq.xml C:\Users\hp\Desktop\activemq-conf\activemq.xml
+
+<broker>
+    ...
+    <managementContext>
+        <managementContext createConnector="true"/>
+    </managementContext>
+    ...
+</broker>
+
+
+Modify jolokia-access.xml:
+--------------------------
+
+docker cp activemq:/opt/apache-activemq/conf/jolokia-access.xml C:\Users\hp\Desktop\activemq-conf\jolokia-access.xml
+
+<restrict>
+	<cors>
+		<allow-origin>*</allow-origin>
+	</cors>
+</restrict>
+
+docker cp C:\Users\hp\Desktop\activemq-conf\jolokia-access.xml activemq:/opt/apache-activemq/conf/jolokia-access.xml
+
+
+or 
+
+jolokia.config.allow-origin=*
+jolokia.config.strict-checking=false
+
+
+-Djolokia.config.allow-origin=*
+-Djolokia.config.strict-checking=false
+
+---------------------------------------------------------------------------------------------------------------------------
+
+Send Message to queue:
+----------------------
+curl -u admin:admin -d "body=message" http://localhost:8161/api/message/TEST?type=queue
+
+
+Get count of messages in a queue:
+---------------------------------
+curl -u admin:admin -X GET "http://localhost:8161/api/jolokia/read/org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=TEST"
+
+curl -u admin:admin -X GET http://localhost:8161/api/message?destination=queue://TEST
+
+curl -u admin:admin -X GET http://localhost:8161/api/jolokia/read/org.apache.activemq:type=Broker,brokerName=localhost
+
+http://localhost:8161/api/jolokia/read/org.apache.activemq:type=Broker,brokerName=localhost

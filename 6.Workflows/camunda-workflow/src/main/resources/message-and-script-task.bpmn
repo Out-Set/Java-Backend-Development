@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_169l4sf" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.19.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.20.0">
+  <bpmn:process id="message-and-script-task" name="message-and-script-task" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:extensionElements>
+      <camunda:executionListener class="com.workflow.camunda.service.MyStartListener" event="start" />
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1v6t3wi</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1v6t3wi" sourceRef="StartEvent_1" targetRef="Activity_1skd7jt" />
+    <bpmn:serviceTask id="Activity_1skd7jt" name="welcome-task" camunda:class="com.workflow.camunda.service.WelcomeTask">
+      <bpmn:incoming>Flow_1v6t3wi</bpmn:incoming>
+      <bpmn:outgoing>Flow_1vu7xzf</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1vu7xzf" sourceRef="Activity_1skd7jt" targetRef="Activity_06yagpv" />
+    <bpmn:userTask id="Activity_06yagpv" name="user-task">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="age" label="Age" type="long" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1vu7xzf</bpmn:incoming>
+      <bpmn:outgoing>Flow_1cbmzlw</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_1cbmzlw" sourceRef="Activity_06yagpv" targetRef="Activity_19r8739" />
+    <bpmn:sendTask id="Activity_19r8739" name="input-value" camunda:class="com.workflow.camunda.service.MessageTask">
+      <bpmn:incoming>Flow_1cbmzlw</bpmn:incoming>
+      <bpmn:outgoing>Flow_1y1li8i</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="Flow_1y1li8i" sourceRef="Activity_19r8739" targetRef="Activity_1eakdkk" />
+    <bpmn:scriptTask id="Activity_1eakdkk" name="script-task" scriptFormat="groovy" camunda:resultVariable="output">
+      <bpmn:incoming>Flow_1y1li8i</bpmn:incoming>
+      <bpmn:outgoing>Flow_1o4wnel</bpmn:outgoing>
+      <bpmn:script>print(age);
+if(age&gt;=18){
+output = "adult";
+}else{
+output = "child";
+}</bpmn:script>
+    </bpmn:scriptTask>
+    <bpmn:sequenceFlow id="Flow_1o4wnel" sourceRef="Activity_1eakdkk" targetRef="Activity_0vblkz4" />
+    <bpmn:serviceTask id="Activity_0vblkz4" name="age-service-task" camunda:class="com.workflow.camunda.service.ScriptTask">
+      <bpmn:incoming>Flow_1o4wnel</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ye8n78</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="Event_08a7ont">
+      <bpmn:incoming>Flow_0ye8n78</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0ye8n78" sourceRef="Activity_0vblkz4" targetRef="Event_08a7ont" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="message-and-script-task">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_02drfh1_di" bpmnElement="Activity_1skd7jt">
+        <dc:Bounds x="270" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0xitkal_di" bpmnElement="Activity_06yagpv">
+        <dc:Bounds x="430" y="77" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0bpm5l4_di" bpmnElement="Activity_19r8739">
+        <dc:Bounds x="590" y="77" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1uqnz9l_di" bpmnElement="Activity_1eakdkk">
+        <dc:Bounds x="750" y="77" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0sz3ei3_di" bpmnElement="Activity_0vblkz4">
+        <dc:Bounds x="910" y="77" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_08a7ont_di" bpmnElement="Event_08a7ont">
+        <dc:Bounds x="1072" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1v6t3wi_di" bpmnElement="Flow_1v6t3wi">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="270" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1vu7xzf_di" bpmnElement="Flow_1vu7xzf">
+        <di:waypoint x="370" y="117" />
+        <di:waypoint x="430" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1cbmzlw_di" bpmnElement="Flow_1cbmzlw">
+        <di:waypoint x="530" y="117" />
+        <di:waypoint x="590" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1y1li8i_di" bpmnElement="Flow_1y1li8i">
+        <di:waypoint x="690" y="117" />
+        <di:waypoint x="750" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1o4wnel_di" bpmnElement="Flow_1o4wnel">
+        <di:waypoint x="850" y="117" />
+        <di:waypoint x="910" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ye8n78_di" bpmnElement="Flow_0ye8n78">
+        <di:waypoint x="1010" y="117" />
+        <di:waypoint x="1072" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

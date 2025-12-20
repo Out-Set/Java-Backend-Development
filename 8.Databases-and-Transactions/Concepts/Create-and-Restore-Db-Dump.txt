@@ -1,0 +1,13 @@
+Create dump: pg_dump -U postgres -d integration -h localhost -p 5432 --no-blobs > D:\db_dump\integration.sql
+Restore dump: psql -h 192.168.1.26 -U postgres -p 5432 -d intg_1 -f E:\\db_dump\\integration.sql
+
+
+Through Terminal/CMD:
+---------------------
+1.Create dump:
+docker exec -i <container_name> pg_dump -U <user> -d <database> --no-blobs > D:\db_dump\integration.sql
+	i.e. docker exec -i postgresDb pg_dump -U postgres -d integration --no-blobs > D:\db_dump\integration.sql
+
+2.Restore dump:	
+docker exec -i <container_name> psql -U <user> -d <database> < D:\db_dump\integration.sql
+	i.e. docker exec -i postgresDb psql -U postgres -d integration < D:\db_dump\integration.sql
