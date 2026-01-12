@@ -1,0 +1,43 @@
+Keep log4j and jboss-logging dependency:
+========================================
+
+Note: jboss-logging is the implementation for the log4j specification.
+
+<dependency>
+	<groupid>log4j</groupid>
+	<artifactid>log4j</artifactid>
+	<version>1.2.17</version>
+</dependency>
+<dependency>
+	<groupid>org.jboss.logging</groupid>
+	<artifactid>jboss.logging<</artifactid>
+	<version>3.3.2.final</version>
+</dependency>
+
+-------------------------------------------------------------------------------------------
+
+log4j.properties: keep in resources folder of project
+=====================================================
+
+log4j.appender.stdout = org.apache.ConsoleAppender
+log4j.appender.stdout.Target = Syatem.out
+log4j.appender.stdout.layout = org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern = %d{ABSOLUTE} %5p %c{1}:%L - %m%n
+
+#Root Console
+log4j.rootLogger = OFF, stdout
+
+#LOGGING HIBERNATE INFO
+log4j.logger.org.hibernate = ALL
+
+# SQL STATEMENT LOG
+log4j.logger.org.hibernate.SQL = OFF
+
+# SHOW PARAM VALUE
+log4j.logger.org.hibernate.type.descriptor.sql.BasicBinder = TRACE
+
+# SHOW SESSION INFO
+log4j.logger.org.hibernate.engine.internal.StatisticalLoggingSessionEventKistener = INFO
+
+
+
