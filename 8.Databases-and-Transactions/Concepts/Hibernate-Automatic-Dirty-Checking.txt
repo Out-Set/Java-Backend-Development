@@ -1,0 +1,193 @@
+Read carefully:
+===============
+
+class Book {
+	private Integer id;
+	private String name;
+	private String writer;
+}
+
+Example-1:
+----------
+SessionFactory sf =  HibernateUtils.getSessionFactory();
+if(sf != null) {
+	Session session = sf.openSession();
+	session.beginTransaction();
+	
+	Book book = session.get(Book.class, 2);
+	System.out.println(book); // Book(1, "hindi", "ab")  // Initial state
+	
+	Dirtying the record: Changed the state of object
+	book.setName("history"); // from hindi to history    // final state
+	
+	// Since you changed the state of object and both the states are different.
+	// Now hibernate will fire an update query and update state to final state.
+	
+	// *This is called hibernate automatic-dirty-checking.
+	// We do not need to explicitely call update(), hibernate managing it implicitely.
+	
+	// Note: Checks is performed on each property. (i.e. name, writer ...)
+	// automatic-dirty-checking works till you in the session (in attached state).
+	// If you will make any changes after commiting the session automatic-dirty-checking works will not work.
+	
+	session.getTransaction().commit();
+	session.close();
+}
+
+
+Example-2:
+----------
+SessionFactory sf =  HibernateUtils.getSessionFactory();
+if(sf != null) {
+	Session session = sf.openSession();
+	session.beginTransaction();
+	
+	Book book = session.get(Book.class, 2);
+	System.out.println(book); // Book(1, "hindi")        // Initial state
+	
+	Dirtying the record: Changed the state of object
+	book.setName("history"); // from hindi to history 
+	book.setName("science"); // from history to science
+	book.setName("math"); // from science to math
+	book.setName("dbms"); // from math to dbms           // final state
+	
+	// *Only once update query will be fired and update state to final state only.
+	// Since you changed the state of object and both the states are different.
+	
+	session.getTransaction().commit();
+	session.close();
+}
+
+
+Example-3:
+----------
+SessionFactory sf =  HibernateUtils.getSessionFactory();
+if(sf != null) {
+	Session session = sf.openSession();
+	session.beginTransaction();
+	
+	Book book = session.get(Book.class, 2);
+	System.out.println(book); // Book(1, "hindi", "ab")  // Initial state
+	
+	session.getTransaction().commit();
+	session.close();
+	
+	Dirtying the record: Changed the state of object
+	book.setName("history"); // from hindi to history    // final state
+	
+	// Since you have already commited the session and in detach state.
+	// Now hibernate will not fire any update query to update state to final state.
+}
+
+
+Example-4:
+----------
+SessionFactory sf =  HibernateUtils.getSessionFactory();
+if(sf != null) {
+	Session session = sf.openSession();
+	session.beginTransaction();
+	
+	Book book = session.get(Book.class, 2);
+	System.out.println(book); // Book(1, "hindi", "ab")  // Initial state
+	
+	session.getTransaction().commit();
+	session.close();
+	
+	Dirtying the record: Changed the state of object
+	book.setName("history"); // from hindi to history    // final state
+	
+	// Since you have already commited the session and in detach state.
+	// Now hibernate will not fire any update query to update state to final state.
+	// If you still want to update the changed record, you need to open the session again.
+	
+	Session newSession = sf.openSession();
+	newSession.beginTransaction();
+	newSession.update(book);
+	
+	session.getTransaction().commit();
+	session.close();
+}
+
+
+Example-4:
+----------
+SessionFactory sf =  HibernateUtils.getSessionFactory();
+if(sf != null) {
+	Session session = sf.openSession();
+	session.beginTransaction();
+	
+	Book book = session.get(Book.class, 2);
+	System.out.println(book); // Book(1, "hindi", "ab")  // Initial state
+	
+	session.getTransaction().commit();
+	session.close();
+	
+	Dirtying the record: Changed the state of object
+	book.setName("history"); // from hindi to history    // final state
+	
+	// Since you have already commited the session and in detach state.
+	// Now hibernate will not fire any update query to update state to final state.
+	// If you still want to update the changed record, you need to open the session again.
+	
+	Session newSession = sf.openSession();
+	newSession.beginTransaction();
+	
+	Book book = session.get(Book.class, 2);
+	newSession.update(book); // throw exception: Different object with the same identifier value has already associated with session.
+	
+	// Exception cause: you had already loaded the object and made changes to its property and the loaded again the same object.
+	// Now hibernate is confused which one to consider, so using update() will cause an exception, use merge() for such cases.
+	
+
+	// Resolution: use merge()
+	newSession.merge(book);
+	
+	session.getTransaction().commit();
+	session.close();
+}
+
+-------------------------------------------------------------------------------------------
+
+Keep log4j and jboss-logging dependency:
+========================================
+
+Note: jboss-logging is the implementation for the log4j specification.
+
+<dependency>
+	<groupid>log4j</groupid>
+	<artifactid>log4j</artifactid>
+	<version>1.2.17</version>
+</dependency>
+<dependency>
+	<groupid>org.jboss.logging</groupid>
+	<artifactid>jboss.logging<</artifactid>
+	<version>3.3.2.final</version>
+</dependency>
+
+-------------------------------------------------------------------------------------------
+
+log4j.properties: keep in resources folder of project
+=====================================================
+
+log4j.appender.stdout = org.apache.ConsoleAppender
+log4j.appender.stdout.Target = Syatem.out
+log4j.appender.stdout.layout = org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern = %d{ABSOLUTE} %5p %c{1}:%L - %m%n
+
+#Root Console
+log4j.rootLogger = OFF, stdout
+
+#LOGGING HIBERNATE INFO
+log4j.logger.org.hibernate = ALL
+
+# SQL STATEMENT LOG
+log4j.logger.org.hibernate.SQL = OFF
+
+# SHOW PARAM VALUE
+log4j.logger.org.hibernate.type.descriptor.sql.BasicBinder = TRACE
+
+# SHOW SESSION INFO
+log4j.logger.org.hibernate.engine.internal.StatisticalLoggingSessionEventKistener = INFO
+
+
+
